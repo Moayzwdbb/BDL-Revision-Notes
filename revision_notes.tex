@@ -1,0 +1,691 @@
+\documentclass[10pt,a4paper,twocolumn]{article}
+
+\usepackage[margin=1.4cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{float}
+\usepackage{graphicx}
+
+% Tighter section spacing and slightly smaller titles
+\titlespacing*{\section}{0pt}{4pt}{2pt}
+\titlespacing*{\subsection}{0pt}{3pt}{1pt}
+\titleformat{\section}{\small\bfseries}{\thesection}{0.5em}{}
+\titleformat{\subsection}{\small\bfseries}{\thesubsection}{0.5em}{}
+
+\setlength{\parskip}{2pt}
+\setlength{\parindent}{0pt}
+\setlist{noitemsep,topsep=1pt,leftmargin=*}
+
+\date{}
+
+\begin{document}
+\small
+
+\section{Week 1}
+
+\subsection{Why Study Blockchains}
+
+\textbf{High level idea:} Blockchains are a new paradigm for distributed secure systems.
+
+They combine:
+\begin{itemize}
+  \item Cryptography (hashes, signatures, PoW).
+  \item Distributed systems (consensus, P2P networks).
+  \item Economics and game theory (incentives, equilibria).
+\end{itemize}
+
+Why they matter:
+\begin{itemize}
+  \item Help understand modern security mechanisms:
+  \begin{itemize}
+    \item Key management and PKI.
+    \item Software integrity and update mechanisms.
+    \item Privacy enhancing technologies.
+  \end{itemize}
+  \item Enable new organizational forms:
+  \begin{itemize}
+    \item Cryptocurrency and DeFi.
+    \item DAOs, on chain governance.
+    \item Token based coordination and funding.
+  \end{itemize}
+  \item Bitcoin is a concrete proof that a large scale open system can run for years without a central operator.
+\end{itemize}
+
+\subsection{Blockchains and Distributed Ledgers}
+
+\subsubsection{Concepts}
+
+\textbf{Blockchain:} a distributed, append only data structure that maintains a consistent log of transactions across many nodes.
+
+\textbf{Distributed ledger:} a general term for systems that maintain shared state among multiple parties without a single trusted authority.
+
+Desired properties:
+\begin{itemize}
+  \item \textbf{Safety:} all honest nodes agree on the same history (no conflicting logs).
+  \item \textbf{Liveness:} valid transactions are eventually included and confirmed.
+\end{itemize}
+
+Bitcoin is the first widely deployed blockchain protocol that achieves these properties in a permissionless setting.
+
+\subsection{Endless Ledger Parable}
+
+\subsubsection{Book and Scribes}
+
+Intuition: model Bitcoin as an endlessly growing ledger maintained by many \emph{scribes}.
+
+\begin{itemize}
+  \item There is a shared ledger (a book) with many numbered pages.
+  \item Anyone can become a scribe and propose a new page.
+  \item Each page records a batch of transactions.
+  \item The ledger never stops growing: new pages are added over time.
+\end{itemize}
+
+Constraint: adding a page requires expensive work.
+
+\begin{itemize}
+  \item To write page \(i\), the scribe must solve a hard puzzle, like throwing many dice until a rare pattern appears.
+  \item This represents Proof of Work (PoW).
+\end{itemize}
+
+\subsubsection{Forks and Longest Chain Rule}
+
+Multiple copies of the ledger may exist:
+
+\begin{itemize}
+  \item Different scribes work in parallel and may produce conflicting next pages.
+  \item Question: which ledger is the ``correct'' one?
+\end{itemize}
+
+\textbf{Rule:} everyone follows the ledger with the largest number of valid pages.
+
+\begin{itemize}
+  \item If several ledgers have the same maximum length, pick the first one you received and keep writing on top of it.
+  \item Pages not on the longest ledger become \emph{orphan} pages.
+\end{itemize}
+
+This is the \textbf{longest chain rule}: choose the chain with the greatest cumulative work.
+
+\subsubsection{Randomness and Symmetry Breaking}
+
+Each page is produced by a random process (dice throwing, PoW search):
+
+\begin{itemize}
+  \item With many scribes, the chances that two of them keep finding pages in perfect lockstep are tiny.
+  \item Eventually one scribe gets ahead, creating a longer ledger.
+  \item Other scribes then switch to this longer ledger.
+\end{itemize}
+
+Randomness breaks symmetry and lets the system converge on a single chain.
+
+\subsubsection{Incentives for Scribes}
+
+To motivate scribes to do the costly work:
+
+\begin{itemize}
+  \item The rules allow the scribe who creates a valid new page to insert a special record awarding them a reward.
+  \item In Bitcoin this is the block reward (newly minted coins) plus transaction fees.
+\end{itemize}
+
+Key points:
+\begin{itemize}
+  \item Anyone with computing resources can become a miner.
+  \item More computing power implies higher probability of winning the next block.
+\end{itemize}
+
+\subsection{Scalable Service Provision Problem}
+
+General IT question:
+
+\textbf{How can we scale an online service to the whole world when participants do not trust each other and there is no central authority?}
+
+Traditional answers:
+\begin{itemize}
+  \item \textbf{Federation:} multiple providers cooperate (e.g. email, XMPP).
+  \item \textbf{Centralization:} one dominant provider (e.g. large social networks, cloud services).
+\end{itemize}
+
+Blockchains show a third option: decentralized provision by \emph{resource owners} instead of fixed organizations.
+
+\subsubsection{Software Only Launch (SOL)}
+
+Goal: deploy a system purely by publishing software.
+
+\begin{itemize}
+  \item Release an open source program.
+  \item Announce a start time.
+  \item Anyone can download the program and run it.
+  \item When enough nodes run the software, the system ``self boots'' and becomes operational.
+\end{itemize}
+
+Bitcoin is a successful example of such a software only launch.
+
+\subsection{Hash Functions}
+
+\subsubsection{Definition and Basic Properties}
+
+A hash function \(H\) maps inputs of arbitrary length to fixed length outputs.
+
+Requirements:
+\begin{itemize}
+  \item Efficient to compute.
+  \item Output looks random and is well spread over the output space.
+\end{itemize}
+
+Cryptographic security properties:
+\begin{itemize}
+  \item \textbf{Pre image resistance:} given \(y\), it is hard to find any \(x\) with \(H(x) = y\).
+  \item \textbf{Second pre image resistance:} given \(x\), it is hard to find \(x' \neq x\) with \(H(x') = H(x)\).
+  \item \textbf{Collision resistance:} it is hard to find any pair \(x \neq x'\) such that \(H(x) = H(x')\).
+\end{itemize}
+
+\subsubsection{Birthday Paradox}
+
+If there are \(n\) possible hash outputs, collisions appear surprisingly early.
+
+\begin{itemize}
+  \item Approximate number of random samples needed for a collision with probability \(\approx 50\%\): \(k \approx 1.177 \sqrt{n}\).
+  \item For hash outputs of \(t\) bits, \(n = 2^t\), so attacks based on collisions cost about \(2^{t/2}\) operations.
+\end{itemize}
+
+\subsubsection{Examples}
+
+\begin{itemize}
+  \item Broken: MD5, SHA 1 (known collisions).
+  \item Current families: SHA 2 and SHA 3 with 224, 256, 384, 512 bit outputs.
+  \item Bitcoin uses SHA 256 (from SHA 2 family).
+\end{itemize}
+
+\subsection{Digital Signatures}
+
+\subsubsection{API}
+
+A signature scheme \(\Sigma = (\text{KeyGen}, \text{Sign}, \text{Verify})\):
+
+\begin{itemize}
+  \item \textbf{KeyGen}:
+  \[
+    (sk, vk) \leftarrow \text{KeyGen}(1^\lambda)
+  \]
+  where \(sk\) is the secret signing key, \(vk\) is the public verification key.
+  \item \textbf{Sign}:
+  \[
+    \sigma \leftarrow \text{Sign}(sk, m)
+  \]
+  where \(m\) is the message.
+  \item \textbf{Verify}:
+  \[
+    b \leftarrow \text{Verify}(vk, m, \sigma) \in \{0,1\}
+  \]
+  output 1 (accept) or 0 (reject).
+\end{itemize}
+
+\subsubsection{Security Intuition}
+
+Existential unforgeability under chosen message attack (EU CMA):
+
+\begin{itemize}
+  \item Attacker can obtain signatures on messages of their choice from a signing oracle.
+  \item Even with this advantage, attacker should not be able to produce a valid signature on a new message that was never signed before.
+\end{itemize}
+
+\subsubsection{Constructions}
+
+\begin{itemize}
+  \item Based on RSA (integer factorization hard).
+  \item Based on discrete logarithms (DSA).
+  \item Elliptic curve variants (ECDSA, Schnorr).
+\end{itemize}
+
+Bitcoin uses ECDSA originally and later also supports Schnorr style signatures.
+
+\subsection{Proof of Work (PoW)}
+
+\subsubsection{Definition}
+
+A PoW scheme allows a prover to demonstrate that a certain amount of computational work has been done.
+
+Typical hash based PoW:
+
+\[
+  \text{Find } w \text{ such that } H(\text{data} \Vert w) \le T
+\]
+where \(T\) is a difficulty target.
+
+\subsubsection{Simple Algorithm}
+
+\begin{verbatim}
+ctr = 0
+while H(data || ctr) > T:
+    ctr = ctr + 1
+return ctr
+\end{verbatim}
+
+Properties:
+\begin{itemize}
+  \item \textbf{Fast verification:} given \(w\), one hash evaluation checks whether the condition holds.
+  \item \textbf{No shortcuts:} for a well designed hash function, there is no significantly faster way than brute forcing different \(w\).
+\end{itemize}
+
+\subsubsection{Variants}
+
+\begin{itemize}
+  \item Standard Hashcash style PoW (used in Bitcoin).
+  \item Memory hard PoW (e.g. scrypt, Equihash) to force large RAM usage.
+  \item ASIC resistant PoW to reduce the advantage of specialized hardware.
+\end{itemize}
+
+\subsection{Resource Based Systems}
+
+\subsubsection{Resource Types}
+
+In resource based systems participation is tied to control of some scarce resource:
+
+\begin{itemize}
+  \item \textbf{Proof of Work (PoW):} computational power.
+  \item \textbf{Proof of Stake (PoS):} ownership of currency or tokens.
+  \item \textbf{Proof of Space / Capacity:} available storage.
+  \item \textbf{Proof of Time / Identity:} trusted hardware or other timing assumptions.
+\end{itemize}
+
+The system is not pinned to a fixed set of identities. Instead, any entity that can show a valid proof of resource can participate in maintaining the ledger.
+
+\subsubsection{PoW vs PoS}
+
+\textbf{PoW:}
+\begin{itemize}
+  \item Pros: simple design, well studied, direct link between cost and security.
+  \item Cons: high energy usage, hardware centralization (ASIC farms), environmental concerns.
+\end{itemize}
+
+\textbf{PoS:}
+\begin{itemize}
+  \item Pros: lower energy usage, security based on economic value at stake.
+  \item Cons: subtle security issues (nothing at stake, long range attacks), more complex protocol design.
+\end{itemize}
+
+\subsection{Tokenomics}
+
+\subsubsection{Basic Idea}
+
+Tokenomics studies how to use tokens and rewards to align incentives of participants.
+
+Typical cycle:
+\begin{itemize}
+  \item Users pay fees to use the service (transactions, smart contracts).
+  \item The protocol distributes rewards to resource providers (miners, validators).
+  \item Providers sell some of their tokens to cover costs and profit.
+\end{itemize}
+
+Goal: set parameters so that:
+\begin{itemize}
+  \item Providing honest service is economically attractive.
+  \item Attacking or misbehaving is economically disfavored.
+\end{itemize}
+
+\subsection{Decentralized Service Provision}
+
+To run a decentralized service in an open network, the protocol must handle:
+
+\begin{itemize}
+  \item \textbf{DoS resistance:} prevent abuse by spamming transactions or connections.
+  \item \textbf{Consistency:} all honest participants eventually agree on the same state.
+  \item \textbf{Liveness and censorship resistance:} valid transactions should not be permanently excluded.
+  \item \textbf{Fairness of rewards:} contributions of resource providers should be measured and rewarded in a predictable way.
+\end{itemize}
+
+\subsubsection{Reward Sharing}
+
+Rewards can be distributed:
+\begin{itemize}
+  \item Per block or per action (e.g. each mined block gets a fixed reward).
+  \item Per epoch (e.g. aggregate rewards over a time window then share according to contribution).
+\end{itemize}
+
+Design challenge:
+\begin{itemize}
+  \item Ensure that rational, self interested participants collectively form a robust and secure system.
+  \item Avoid centralization and cartel behavior where possible.
+\end{itemize}
+
+\subsection{Quick Summary}
+
+\begin{itemize}
+  \item Blockchains provide a new way to build global services without central operators.
+  \item The ``endless ledger'' parable explains how longest chain and randomness yield consensus.
+  \item Hash functions and digital signatures are the basic cryptographic tools for integrity and authenticity.
+  \item Proof of Work ties block production to computational effort and is easy to verify.
+  \item Resource based systems use PoW, PoS, or other proofs to select and reward maintainers.
+  \item Tokenomics and reward sharing mechanisms align incentives so that honest behavior is profitable.
+\end{itemize}
+
+\section{Week2}
+\subsection{Authenticated File Storage}
+
+\textbf{Goal:} Store a file on an untrusted server but keep only a short local state 
+so that later you can check whether the server returned the correct data.
+
+Client has identifier \(F\) and data \(D\). It sends \((F,D)\) to the server, 
+and wants to delete \(D\) locally while still being able to verify any future response from the server.
+
+\subsubsection{Naive solution (does not help)}
+
+Client keeps a full local copy of \(D\) and checks equality with any \(D'\) returned by the server. 
+This gives integrity but saves no storage.
+
+\subsection{Basic Cryptographic Tools}
+
+\subsubsection{Hash-based authentication}
+
+Hash function \(H\) is collision resistant.
+
+\begin{itemize}
+  \item Upload: client sends \((F,D)\) to server.
+  \item Commit: client stores only \(h = H(D)\), deletes \(D\).
+  \item Retrieval: server returns \(D'\).
+  \item Verify: client accepts if \(H(D') = h\), rejects otherwise.
+\end{itemize}
+
+Properties:
+\begin{itemize}
+  \item Client keeps a short fixed-size value.
+  \item Integrity relies on collision resistance of \(H\).
+\end{itemize}
+
+\subsubsection{Digital signatures}
+
+Signature scheme \(\Sigma = (\text{KeyGen}, \text{Sign}, \text{Verify})\).
+
+\begin{itemize}
+  \item Key generation: client runs \(\text{KeyGen}\) to get \((sk, vk)\).
+  \item Upload: compute \(\sigma = \text{Sign}(sk,\langle F,D\rangle)\), send \((F,D,\sigma)\) 
+  to server.
+  \item Client keeps only \(vk\).
+  \item Retrieval: server returns \((D',\sigma')\).
+  \item Verify: accept if \(\text{Verify}(vk,\langle F,D'\rangle,\sigma') = 1\).
+\end{itemize}
+
+Difference from pure hashing:
+\begin{itemize}
+  \item Signatures are publicly verifiable (third parties can check).
+  \item Useful for transferable proofs of origin and integrity.
+\end{itemize}
+
+\subsection{Merkle Trees}
+
+\subsubsection{Structure}
+
+Goal: authenticate large data split into blocks, and allow efficient verification of 
+individual blocks.
+
+\begin{itemize}
+  \item Split data \(D\) into blocks \(D_1,\dots,D_n\).
+  \item Compute leaf hashes \(H_1 = H(D_1),\dots,H_n = H(D_n)\).
+  \item Build a binary tree:
+    \[
+      H_{i,j} = H(H_i \Vert H_j)
+    \]
+    up to a single \emph{Merkle root} \(MTR\).
+\end{itemize}
+
+Client stores only \(MTR\) as the commitment to the entire file.
+
+\subsubsection{Merkle-based storage protocol}
+
+\begin{itemize}
+  \item Upload: client sends full \(D\) to server, builds Merkle tree locally and 
+  computes root \(MTR\), then keeps only \(MTR\).
+  \item Retrieval of a block \(D_x\): server returns \(D_x\) and 
+  a \emph{proof of inclusion} \(\pi\).
+  \item Verification: client uses \(D_x\), \(\pi\), and \(H\) to recompute 
+  a root and checks that it equals stored \(MTR\).
+\end{itemize}
+
+\subsubsection{Proof of inclusion}
+
+For a block \(D_x\):
+\begin{itemize}
+  \item Proof consists of all sibling hashes along the path from the leaf \(H(D_x)\) to the root.
+  \item Verifier:
+    \begin{enumerate}
+      \item Starts from \(H(D_x)\).
+      \item Iteratively combines with sibling hashes and hashes upward.
+      \item Checks whether the final value equals \(MTR\).
+    \end{enumerate}
+\end{itemize}
+
+Tree height is \(O(\log n)\) for \(n\) leaves, so proof size and verification time are \(O(\log n)\).
+
+\subsubsection{Applications}
+
+\begin{itemize}
+  \item BitTorrent: verify file chunks during download.
+  \item Bitcoin: Merkle tree of transactions inside each block.
+  \item Ethereum: variants of Merkle trees for state and transactions.
+\end{itemize}
+
+\subsection{Merkle Trees for Sets}
+
+Goal: store a set \(S\) on a server and later prove membership or non-membership of any element \(x\).
+
+Construction:
+\begin{itemize}
+  \item Sort the elements of \(S\).
+  \item Build a Merkle tree where leaves are sorted elements.
+\end{itemize}
+
+\subsubsection{Membership proof}
+
+If \(x \in S\), the server provides a normal proof of inclusion for the leaf corresponding to \(x\).
+
+\subsubsection{Non-membership proof}
+
+If \(x \notin S\):
+\begin{itemize}
+  \item Find neighbors \(H_{<}\) and \(H_{>}\) in the sorted order such that \(H_{<} < x < H_{>}\).
+  \item Provide inclusion proofs for \(H_{<}\) and \(H_{>}\).
+  \item Show they are adjacent in the sorted set representation.
+  \item Conclude that \(x\) is not present.
+\end{itemize}
+
+\subsection{Tries and Patricia Tries}
+
+\subsubsection{Trie (prefix tree)}
+
+Data structure for a set of key-value pairs \(\{(key,value)\}\) where keys are strings.
+
+\begin{itemize}
+  \item Each edge is labeled with a character.
+  \item A path from the root spells out a key.
+  \item Nodes may store values for keys ending at that node.
+\end{itemize}
+
+Operations:
+\begin{itemize}
+  \item \textbf{add(key,value)}: follow or create edges for each character, 
+  then store the value at the final node.
+  \item \textbf{query(key)}: follow edges by characters, and check whether 
+  the final node has a value.
+\end{itemize}
+
+\subsubsection{Patricia Trie}
+
+Compressed version of a Trie:
+\begin{itemize}
+  \item Any chain of nodes where each node has a single child and no value 
+  can be merged into a single edge labeled with a substring.
+  \item Saves space and reduces tree height.
+\end{itemize}
+
+Patricia tries are widely used in blockchain systems for efficient key-value storage.
+
+\subsection{Merkle Patricia Trie (MPT)}
+
+Ethereum combines Merkle hashing with Patricia tries.
+
+\subsubsection{Node types}
+
+Keys are encoded in hexadecimal nibbles. There are three logical node types:
+
+
+\begin{itemize}
+  \item \textbf{Leaf node}: stores remaining key fragment and the value.
+  \item \textbf{Extension node}: stores a shared key prefix and a pointer to another node.
+  \item \textbf{Branch node}: has up to 16 child pointers (for hex digits) plus an optional value.
+\end{itemize}
+
+Each logical node is serialized and hashed. Child pointers store the hash of the child node, 
+so the root hash commits to the entire key-value map.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{img/eth_merkle_paricia_trie.png}
+\end{figure}
+
+
+\subsubsection{Properties}
+
+\begin{itemize}
+  \item Root hash acts as a commitment to the whole dictionary.
+  \item Inclusion proofs: show the path from the root down to a leaf and the content of 
+  intermediate nodes.
+  \item Non-inclusion proofs: show that the search path terminates at a node that proves 
+  no matching key exists.
+  \item Ethereum uses an MPT for the global world state, and the state root hash is stored 
+  in the block header.
+\end{itemize}
+
+\subsection{Blockchain Data Structures}
+
+\subsubsection{Block structure}
+
+A block consists of:
+\begin{itemize}
+  \item Random nonce \(\text{ctr}\).
+  \item Data \(x\) (e.g. transactions, root hashes).
+  \item Pointer \(s\) to the previous block (usually a hash of the previous header).
+\end{itemize}
+
+The header typically includes \((\text{ctr}, x, s)\). The pointer field \(s\) creates a hash 
+chain of blocks back to the genesis block.
+
+\subsubsection{Proof of Work (PoW)}
+
+In PoW systems a block header must satisfy:
+\[
+  H(\text{ctr} \Vert x \Vert s) \le T
+\]
+where \(T\) is a global difficulty target.
+
+\begin{itemize}
+  \item Miners fix \(x\) and \(s\), iterate over \(\text{ctr}\), and search for a header whose 
+  hash is below \(T\).
+  \item The same hash is also used as the block identifier.
+\end{itemize}
+
+\subsection{Bitcoin Overview}
+
+\subsubsection{High-level protocol}
+
+\begin{enumerate}
+  \item New transactions are broadcast to the network.
+  \item Nodes collect transactions into candidate blocks.
+  \item Nodes perform PoW to find valid blocks.
+  \item A node that finds a valid block broadcasts it.
+  \item Other nodes validate all transactions and the PoW before accepting.
+  \item Nodes start mining on top of the longest valid chain.
+\end{enumerate}
+
+\subsubsection{UTXO model}
+
+Bitcoin represents ownership via unspent transaction outputs (UTXOs).
+
+\begin{itemize}
+  \item A transaction has multiple inputs and outputs.
+  \item Each \textbf{input} references a previous output (by transaction hash and index) and 
+  provides a script that authorizes spending.
+  \item Each \textbf{output} specifies a value and a script defining how it may be spent in the future.
+\end{itemize}
+
+\subsubsection{Scripts}
+
+Typical pay-to-public-key-hash (P2PKH) transaction:
+
+\begin{itemize}
+  \item Output script (\texttt{scriptPubKey}): 
+  \begin{align*}
+    \text{OP\_DUP}\ \text{OP\_HASH160}\ \langle \text{pubKeyHash} \rangle \\
+    \text{OP\_EQUALVERIFY}\ \text{OP\_CHECKSIG}
+  \end{align*}
+  
+  \item Input script (\texttt{scriptSig}) when spent: 
+  \[
+    \langle sig \rangle\ \langle pubKey \rangle
+  \]
+\end{itemize}
+
+During validation, the combined script is executed to check that the spender owns the 
+corresponding private key.
+
+\subsubsection{Merkle tree of transactions in a block}
+
+\begin{itemize}
+  \item All transactions in a block are organized as a Merkle tree.
+  \item The Merkle root is stored in the block header.
+  \item Simplified payment verification (SPV) clients download only block headers and 
+  proofs of inclusion for specific transactions.
+\end{itemize}
+
+\subsection{Bitcoin Network}
+
+\subsubsection{P2P topology}
+
+\begin{itemize}
+  \item All nodes run the same open-source protocol.
+  \item Each node maintains connections to a set of peers.
+  \item The network is permissionless: nodes may join or leave at any time.
+\end{itemize}
+
+Bootstrapping:
+\begin{itemize}
+  \item Peer-to-peer nodes come “pre-installed” with some peers by IP / host.
+  \item A user can also manually configure known peers.
+\end{itemize}
+
+\subsubsection{Gossip protocol}
+
+\begin{itemize}
+  \item When a node learns about a new transaction or block, it forwards it to its peers.
+  \item Each peer that sees a new item forwards it to its own peers.
+  \item Nodes ignore items they have already seen.
+  \item This peer-to-peer diffusion eventually spreads data to most honest nodes.
+\end{itemize}
+
+\subsubsection{Eclipse attacks and connectivity assumption}
+
+\textbf{Connectivity assumption}: every honest node can reach every other honest node 
+through some path in the network.
+
+\textbf{Eclipse attack}:
+\begin{itemize}
+  \item Attacker surrounds a victim with malicious peers.
+  \item Victim only connects to attacker-controlled nodes and is cut off from the honest network.
+  \item This can delay or hide blocks and transactions, enabling double spending or 
+  inconsistent views.
+\end{itemize}
+
+Maintaining good connectivity and diverse peer sets is critical for blockchain security.
+
+\subsection{Quick Summary}
+
+\begin{itemize}
+  \item Hashes and signatures support basic authenticated storage.
+  \item Merkle trees give efficient proofs of inclusion with size \(O(\log n)\).
+  \item Merkle trees extend to sets and enable non-membership proofs.
+  \item Tries store key-value maps by sharing prefixes; Patricia tries compress long paths.
+  \item Merkle Patricia tries combine hashing and compressed tries; Ethereum uses them for state.
+  \item Blockchain data structures link blocks using hash pointers and PoW.
+  \item Bitcoin uses UTXOs, scripts, Merkle trees of transactions, and a P2P gossip network.
+\end{itemize}
+
+\end{document}
