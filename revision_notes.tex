@@ -688,4 +688,571 @@ Maintaining good connectivity and diverse peer sets is critical for blockchain s
   \item Bitcoin uses UTXOs, scripts, Merkle trees of transactions, and a P2P gossip network.
 \end{itemize}
 
+\section{Week 3}
+
+\subsection{Smart Contracts: Concept}
+
+\textbf{Smart contract:} a computer program that runs on the blockchain.
+
+\begin{itemize}
+  \item Code is stored on chain and executed by all full nodes.
+  \item Execution is deterministic: all honest nodes get the same outcome.
+  \item Code can read:
+  \begin{itemize}
+    \item Its own internal storage.
+    \item Transaction context (sender, value, data).
+    \item Recent block data (in Ethereum).
+  \end{itemize}
+  \item Code of a deployed contract cannot change (immutability).
+\end{itemize}
+
+Legal caution: from a legal point of view, ``smart contracts'' are usually neither legally smart nor contracts; they are programs enforcing some rules on chain.
+
+\subsection{Bitcoin Transactions and Script}
+
+\subsubsection{Transaction structure}
+
+A Bitcoin transaction consists of:
+
+\begin{itemize}
+  \item \textbf{Inputs}:
+  \begin{itemize}
+    \item Reference to a previous transaction output (tx hash + index).
+    \item \texttt{scriptSig}: unlocking script that proves right to spend.
+  \end{itemize}
+  \item \textbf{Outputs}:
+  \begin{itemize}
+    \item \texttt{value}: amount of BTC.
+    \item \texttt{scriptPubKey}: locking script specifying spending conditions.
+  \end{itemize}
+\end{itemize}
+
+Validation rule: for each input, the node executes
+\[
+\texttt{scriptSig} \Vert \texttt{scriptPubKey}
+\]
+on a stack machine and checks that it finishes with value \texttt{TRUE} on top of the stack.
+
+\subsubsection{Bitcoin Script basics}
+
+\begin{itemize}
+  \item Stack based, not Turing complete.
+  \item Data (e.g. \texttt{<sig>}, \texttt{<pubKey>}) is pushed to the stack.
+  \item \textbf{Opcodes}:
+  \begin{itemize}
+    \item Arithmetic: \texttt{OP\_ADD}, \texttt{OP\_ABS}, \dots
+    \item Stack operations: \texttt{OP\_DROP}, \texttt{OP\_SWAP}.
+    \item Comparisons: \texttt{OP\_EQUAL}, \texttt{OP\_EQUALVERIFY}.
+    \item Crypto: \texttt{OP\_HASH160}, \texttt{OP\_SHA256}.
+    \item Signatures: \texttt{OP\_CHECKSIG}, \texttt{OP\_CHECKMULTISIG}.
+    \item Timelocks: \texttt{OP\_CHECKLOCKTIMEVERIFY}, \texttt{OP\_CHECKSEQUENCEVERIFY}.
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{P2PKH example}
+
+\textbf{Output script (\texttt{scriptPubKey}):}
+\[
+\texttt{OP\_DUP OP\_HASH160 <pubKeyHash> OP\_EQUALVERIFY OP\_CHECKSIG}
+\]
+
+\textbf{Input script (\texttt{scriptSig}) when spending:}
+\[
+\texttt{<sig> <pubKey>}
+\]
+
+Execution steps:
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{img/btc_script_example.png}
+\end{figure}
+
+\subsection{Limitations of Bitcoin Script}
+
+\begin{itemize}
+  \item \textbf{No loops} and restricted control flow: not Turing complete.
+  \item \textbf{No internal state}: script cannot store persistent variables.
+  \item \textbf{Value blind}: script cannot inspect the exact amount being sent, it just validates spending conditions.
+  \item \textbf{Blockchain blind}: cannot access block header fields (e.g. nonce, previous hash) except for basic locktime operations.
+\end{itemize}
+
+These limitations make Bitcoin simple and secure but restrict expressiveness.
+
+\subsection{Extending Bitcoin Functionality}
+
+Two main options:
+
+\subsubsection{Build on top of Bitcoin}
+
+\begin{itemize}
+  \item Use Bitcoin as a base layer and encode extra logic at a higher protocol layer.
+  \item Pros: reuses existing security and mining power; cheaper to deploy.
+  \item Cons: limited flexibility because higher layer must respect Bitcoin's script and transaction model.
+\end{itemize}
+
+\subsubsection{Build an independent blockchain}
+
+\begin{itemize}
+  \item Design a new protocol from scratch (e.g. Ethereum).
+  \item Pros: can add new opcodes and richer state; more expressive smart contracts.
+  \item Cons: must bootstrap own validators or miners; higher development and maintenance cost.
+\end{itemize}
+
+\subsection{Ethereum Overview}
+
+Ethereum keeps the blockchain idea but turns it into a \textbf{universal replicated state machine}.
+
+\begin{itemize}
+  \item One global state shared by all nodes.
+  \item Transactions are state transition requests.
+  \item A virtual machine (EVM) applies transactions to the state.
+  \item Turing complete bytecode language for smart contracts.
+  \item Decentralized applications (DApps) can be deployed and executed on chain.
+\end{itemize}
+
+Consensus and Sybil resistance:
+
+\begin{itemize}
+  \item Originally Proof of Work (Ethash), now Proof of Stake (validators, staking, Gasper).
+\end{itemize}
+
+\subsection{Ethereum Accounts}
+
+\subsubsection{Global state}
+
+Ethereum's global state is a mapping from 20-byte addresses to account objects.
+
+Each account has:
+
+\begin{itemize}
+  \item \texttt{address}: 160-bit identifier.
+  \item \texttt{balance}: amount of Ether (in wei).
+  \item \texttt{nonce}: number of sent transactions.
+  \item (for contract accounts) \texttt{code} and \texttt{storage}.
+\end{itemize}
+
+\subsubsection{Two types of accounts}
+
+\textbf{Externally Owned Account (EOA):}
+
+\begin{itemize}
+  \item Address is derived from a public key: \(\text{addr} = H(\text{pubKey})\).
+  \item Controlled by a private key held by a user.
+  \item No code or storage.
+\end{itemize}
+
+\textbf{Contract account:}
+
+\begin{itemize}
+  \item Address is derived from creator address and nonce.
+  \item Contains immutable contract code and persistent storage.
+  \item Cannot initiate transactions on its own; reacts to incoming transactions or messages.
+\end{itemize}
+
+\subsubsection{UTxO vs account model}
+
+\begin{itemize}
+  \item UTxO:
+  \begin{itemize}
+    \item Better for privacy and parallelism.
+    \item Outputs are spent or unspent.
+  \end{itemize}
+  \item Account model (Ethereum):
+  \begin{itemize}
+    \item Conceptually simpler.
+    \item More compact representation of balances and state.
+  \end{itemize}
+\end{itemize}
+
+\subsection{Ethereum Transactions}
+
+A transaction includes:
+
+\begin{itemize}
+  \item \texttt{from}: recovered from the signature (sender's address).
+  \item \texttt{to}: recipient address (EOA or contract). If empty, this is a contract creation tx.
+  \item \texttt{value}: amount of Ether in wei.
+  \item \texttt{data}: payload. For contracts this encodes which function to call and its arguments. Empty for simple ETH transfers.
+  \item \texttt{nonce}: counts how many transactions the sender has already sent, prevents replay.
+  \item \texttt{gasLimit} (\texttt{startgas}): maximum gas units the sender is willing to use.
+  \item \texttt{gasPrice}: price per gas unit (or fee parameters in newer fee model).
+  \item \texttt{signature}: proves authorization by the sender.
+\end{itemize}
+
+\subsubsection{Types of transactions}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{img/eth_tx_types.png}
+\end{figure}
+
+\subsection{Ethereum Block Structure and Production}
+
+\subsubsection{Block header format}
+
+Each Ethereum block contains the list of transactions and a commitment to the most recent global state.
+
+The block header stores:
+
+\begin{itemize}
+  \item \textbf{prev}: hash pointer to the previous block.
+  \item \textbf{hash}: block hash (identifier).
+  \item \textbf{time}: block timestamp.
+  \item \textbf{gasLimit}: maximum total gas allowed in the block.
+  \item \textbf{gasUsed}: total gas consumed by included transactions.
+  \item \textbf{nonce}: used in the old PoW design (no longer relevant under PoS).
+  \item \textbf{difficulty}: PoW difficulty (historical field).
+  \item \textbf{miner}: address of the block proposer (validator under PoS).
+  \item \textbf{extra}: optional metadata.
+  \item \textbf{state root}: Merkle Patricia Trie root of the global account state.
+  \item \textbf{transaction root}: Merkle root of all transactions in this block.
+  \item \textbf{receipt root}: Merkle root of all transaction receipts (status, logs, gas usage).
+\end{itemize}
+
+The \textbf{state root} commits to all accounts, where each account record contains:
+\begin{itemize}
+  \item \textbf{address}
+  \item \textbf{code} (empty for EOAs)
+  \item \textbf{storage} (persistent key/value data)
+  \item \textbf{balance} (in wei)
+  \item \textbf{nonce} (number of sent transactions)
+\end{itemize}
+
+\subsubsection{Block production and rewards}
+
+\begin{itemize}
+  \item Blocks contain: the ordered transaction list and the most recent state (via the state root).
+  \item Typical block time: about \textbf{12 seconds}.
+  \item Since 2022, Ethereum uses \textbf{Proof-of-Stake (Gasper)} for Sybil resistance and consensus.
+  \item Previously, Ethereum used \textbf{Proof-of-Work} with Ethash (memory-hard PoW).
+\end{itemize}
+
+Rewards and fees:
+
+\begin{itemize}
+  \item \textbf{Before the Merge (PoW):} block miner received a fixed block reward (e.g.\ 2 ETH) plus all transaction fees.
+  \item \textbf{After the Merge (PoS):}
+  \begin{itemize}
+    \item The block proposer (validator) receives a \textbf{base block reward} (newly issued ETH), depending on total ETH staked.
+    \item Each transaction has a \textbf{base fee} which is \emph{burned}, reducing total ETH supply.
+    \item Users can add \textbf{priority fees (tips)} that are paid directly to the block proposer.
+  \end{itemize}
+\end{itemize}
+
+
+\subsection{Messages between contracts}
+
+Contracts cannot create real transactions, but can send \emph{messages}:
+
+\begin{itemize}
+  \item Messages are internal calls generated by running contract code.
+  \item They exist only inside EVM execution and are not part of the P2P network.
+  \item A message can transfer ETH and call functions of other contracts.
+\end{itemize}
+
+Execution chain:
+
+\begin{itemize}
+  \item External transaction triggers code of a contract.
+  \item That contract can send messages to other contracts.
+  \item Each recipient runs its code in turn.
+\end{itemize}
+
+\subsection{Ethereum Virtual Machine (EVM)}
+
+\begin{itemize}
+  \item Stack based architecture with 1024-element stack of 256-bit words.
+  \item Bytecode instruction set; each opcode has a defined gas cost.
+  \item Three data areas:
+  \begin{itemize}
+    \item \textbf{Stack}: last-in first-out, used for intermediate values.
+    \item \textbf{Memory}: transient byte array, cleared between transactions.
+    \item \textbf{Storage}: persistent key-value store, written to and read by contract code.
+  \end{itemize}
+  \item Crypto primitives: hash functions, signature verification.
+  \item Can read execution context: \texttt{msg.sender}, \texttt{msg.value}, \texttt{block.timestamp}, etc.
+\end{itemize}
+
+\subsection{Gas and Transaction Fees}
+
+\subsubsection{Why gas is needed}
+
+\begin{itemize}
+  \item Every node must execute all transactions and keep the full state.
+  \item Without limits, a malicious contract could run forever (halting problem).
+  \item Gas sets a hard bound on how much computation and storage a transaction may consume.
+\end{itemize}
+
+\subsubsection{Gas fields in a transaction}
+
+\begin{itemize}
+  \item \textbf{Gas limit} (\texttt{startgas}): maximum gas units the sender allows for this transaction.
+  \item \textbf{Gas price}: price per gas unit in wei (or equivalent fee parameters).
+\end{itemize}
+
+Maximum fee the sender is willing to pay is:
+\[
+\text{maxFee} = \text{gasLimit} \times \text{gasPrice}.
+\]
+
+\subsubsection{Execution with gas}
+
+Simplified algorithm for a transaction:
+
+\begin{enumerate}
+  \item Check that \(\text{gasLimit} \times \text{gasPrice} \le \text{balance}\). If not, reject.
+  \item Deduct \(\text{gasLimit} \times \text{gasPrice}\) from sender balance.
+  \item Set \texttt{gas} \(\leftarrow \text{gasLimit}\).
+  \item Execute bytecode, decreasing \texttt{gas} by the cost of each operation.
+  \item If execution finishes normally, refund unused gas:
+  \[
+  \text{refund} = \text{gasRemaining} \times \text{gasPrice}.
+  \]
+  \item If gas reaches zero before finishing (out of gas), revert state changes. The prepaid fee is not refunded.
+\end{enumerate}
+
+Note: blocks also have a \emph{block gas limit}, so the sum of gas used by all transactions in a block cannot exceed this bound.
+
+\subsection{Introduction to Solidity}
+
+Solidity is a high level language that compiles to EVM bytecode.
+
+\begin{itemize}
+  \item Syntax resembles JavaScript.
+  \item Statically typed: every variable must have an explicit type.
+  \item Supports contracts, state variables, functions, events, modifiers, inheritance, and interfaces.
+\end{itemize}
+
+\subsubsection{Basic contract example}
+
+A minimal contract usually:
+
+\begin{itemize}
+  \item Starts with a \texttt{pragma} line specifying the compiler version range.
+  \item Declares a \texttt{contract} with a name.
+  \item Contains one or more functions. For example, a simple contract \texttt{HelloWorld} may have a \texttt{print} function marked \texttt{public} and \texttt{pure} that returns the string \texttt{"Hello World!"}.
+\end{itemize}
+
+\subsection{Solidity: Variables and Types}
+
+\subsubsection{State vs local variables}
+
+\begin{itemize}
+  \item \textbf{State variables}:
+  \begin{itemize}
+    \item Declared at contract level.
+    \item Stored in contract storage (persistent and expensive to change).
+  \end{itemize}
+  \item \textbf{Local variables}:
+  \begin{itemize}
+    \item Declared inside functions.
+    \item Live only during function execution.
+    \item Value types are kept on the stack; reference types require an explicit data location.
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{Value types}
+
+\begin{itemize}
+  \item \textbf{bool}: \texttt{true} or \texttt{false}.
+  \item \textbf{int} and \textbf{uint}: signed and unsigned integers of 8 to 256 bits (e.g.\ \texttt{uint256}, \texttt{int8}).
+  \item \textbf{address}: 20-byte address; \texttt{address payable} can receive Ether.
+  \item \textbf{bytes1} to \textbf{bytes32}: fixed size byte arrays.
+  \item \textbf{enum}: user defined type with a finite set of named values.
+\end{itemize}
+
+Variables without explicit initialization receive the default zero value for their type.
+
+\subsubsection{Reference types}
+
+\begin{itemize}
+  \item Dynamic arrays: \texttt{uint[]} or \texttt{bytes} or \texttt{string}.
+  \item Static arrays: for example, \texttt{uint[5]}.
+  \item \textbf{mapping(KeyType => ValueType)}: key-value dictionary, non-iterable.
+  \item \textbf{struct}: groups multiple fields into one type, e.g.\ a \texttt{Voter} struct with fields for weight, address, and whether they have voted.
+\end{itemize}
+
+\subsection{Visibility and Function Types}
+
+\subsubsection{Visibility of functions and variables}
+
+\begin{itemize}
+  \item \textbf{public}:
+  \begin{itemize}
+    \item Functions callable from outside and inside contracts.
+    \item For public state variables, the compiler generates a getter automatically.
+  \end{itemize}
+  \item \textbf{external}:
+  \begin{itemize}
+    \item Callable only from outside the contract.
+    \item Cannot be used for state variables.
+  \end{itemize}
+  \item \textbf{internal}:
+  \begin{itemize}
+    \item Callable only inside the contract or from derived contracts.
+  \end{itemize}
+  \item \textbf{private}:
+  \begin{itemize}
+    \item Callable only inside the contract that defines them (not visible in children).
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{Function modifiers (state mutability)}
+
+\begin{itemize}
+  \item \textbf{view}: function promises not to modify state, but may read it.
+  \item \textbf{pure}: function promises not to read or modify state (depends only on its arguments).
+  \item \textbf{payable}: function can receive Ether along with the call.
+\end{itemize}
+
+Remember: on-chain data is publicly visible regardless of visibility keywords; these only restrict who can \emph{invoke} a function.
+
+\subsection{Solidity Inheritance and Interfaces}
+
+\begin{itemize}
+  \item Solidity supports multiple inheritance between contracts.
+  \item The keyword \texttt{is} is used to derive one contract from another.
+  \item Derived contracts can access non-\texttt{private} state and internal functions of parents.
+  \item Interfaces are abstract contracts that only declare function signatures (no implementation). Implementing contracts must provide the body of each function.
+\end{itemize}
+
+Typical pattern:
+
+\begin{itemize}
+  \item Define an interface \texttt{Regulator} that specifies functions like \texttt{checkValue} and \texttt{loan}.
+  \item Implement a concrete \texttt{Bank} contract \texttt{is Regulator} that maintains an internal balance, implements deposit/withdraw functions, and provides concrete definitions of \texttt{checkValue} and \texttt{loan}.
+\end{itemize}
+
+\subsection{Data Location: storage, memory, calldata}
+
+\begin{itemize}
+  \item \textbf{storage}:
+  \begin{itemize}
+    \item Persistent key-value store for state variables.
+    \item Expensive to read and write; changes are stored on chain.
+  \end{itemize}
+  \item \textbf{memory}:
+  \begin{itemize}
+    \item Temporary area for reference types inside functions.
+    \item Cleared after the function ends.
+  \end{itemize}
+  \item \textbf{calldata}:
+  \begin{itemize}
+    \item Read-only location for function arguments of external functions.
+    \item Cheaper than memory for dynamic types.
+  \end{itemize}
+\end{itemize}
+
+Assignment behaviour:
+
+\begin{itemize}
+  \item \texttt{storage} $\leftrightarrow$ \texttt{memory}: data is copied.
+  \item \texttt{memory} $\leftrightarrow$ \texttt{memory}: references are passed.
+  \item Local variables of type \texttt{storage} act as references (aliases) to existing state variables.
+\end{itemize}
+
+\subsection{Events and Modifiers}
+
+\subsubsection{Events}
+
+\begin{itemize}
+  \item Provide a logging mechanism inside the EVM.
+  \item Event arguments are stored in the transaction log, not in contract storage.
+  \item Off-chain clients (e.g.\ in JavaScript or Python) can subscribe to events and react to them.
+  \item A typical pattern is an event such as \texttt{Deposit(from, id, value)} emitted whenever Ether is deposited into the contract.
+\end{itemize}
+
+\subsubsection{Modifiers}
+
+\begin{itemize}
+  \item Modifiers are reusable preconditions or wrappers around functions.
+  \item The body of the modifier is injected at the point where \texttt{\_;} appears.
+  \item Common example: an \texttt{onlyOwner} modifier that checks \texttt{msg.sender == owner} before executing the function body.
+  \item A contract \texttt{Owned} may set the \texttt{owner} to the deployer in the constructor and define \texttt{onlyOwner}; a derived contract \texttt{Mortal} can then protect a \texttt{close} function with this modifier.
+\end{itemize}
+
+\subsection{Global Variables and Units}
+
+\subsubsection{Ether units}
+
+\begin{itemize}
+  \item \texttt{1 ether == 10\string^18 wei}.
+  \item Other common units: \texttt{wei}, \texttt{gwei}, \texttt{szabo}, \texttt{finney}.
+\end{itemize}
+
+\subsubsection{Time units}
+
+\begin{itemize}
+  \item Suffixes: \texttt{seconds}, \texttt{minutes}, \texttt{hours}, \texttt{days}, \texttt{weeks}.
+  \item Example: \texttt{1 hours == 60 minutes}.
+\end{itemize}
+
+\subsubsection{Common global variables}
+
+\begin{itemize}
+  \item Block properties: \texttt{block.timestamp}, \texttt{block.number}, \texttt{block.coinbase}.
+  \item Transaction and message context: \texttt{msg.sender}, \texttt{msg.value}, \texttt{msg.data}, \texttt{tx.origin}.
+  \item Address helpers: \texttt{addr.balance}, \texttt{addr.transfer(...)}, \texttt{addr.call(...)}.
+\end{itemize}
+
+\subsection{Fallback and Receive Functions}
+
+\begin{itemize}
+  \item \texttt{receive()}:
+  \begin{itemize}
+    \item Declared as \texttt{receive() external payable}.
+    \item Executed when the contract receives Ether with empty data.
+  \end{itemize}
+  \item \texttt{fallback()}:
+  \begin{itemize}
+    \item Declared as \texttt{fallback() external} (optionally \texttt{payable}).
+    \item Executed when no other function matches the call data, or when data is non-empty and \texttt{receive} does not exist.
+  \end{itemize}
+  \item Both functions should be simple and use little gas to avoid unexpected failures.
+\end{itemize}
+
+\subsection{Sending Ether: transfer, send, call}
+
+\begin{itemize}
+  \item \texttt{transfer}:
+  \begin{itemize}
+    \item Forwards 2300 gas to the recipient.
+    \item Reverts on failure.
+    \item Historically considered safe against re-entrancy because the gas stipend is small.
+  \end{itemize}
+  \item \texttt{send}:
+  \begin{itemize}
+    \item Also forwards 2300 gas.
+    \item Returns a boolean success flag instead of reverting; caller must check it.
+  \end{itemize}
+  \item Low-level \texttt{call} with value:
+  \begin{itemize}
+    \item Can send Ether and forward an arbitrary amount of gas.
+    \item Returns a success flag and returned data.
+    \item Flexible but vulnerable to re-entrancy if state updates and external calls are not ordered carefully.
+  \end{itemize}
+\end{itemize}
+
+Best practice: use \texttt{call} together with the checks--effects--interactions pattern and, if needed, explicit re-entrancy guards.
+
+\subsection{Interacting with Other Contracts}
+
+\begin{itemize}
+  \item Contracts can create new contracts and call existing ones.
+  \item A typical pattern: a ``factory'' contract that deploys new instances of another contract (e.g.\ \texttt{Universe} creating many \texttt{Planet} contracts), stores their addresses in an array, and emits an event each time a new instance is created.
+  \item Interaction is done by using the other contract's type and calling its functions as methods.
+\end{itemize}
+
+\subsection{Quick Summary}
+
+\begin{itemize}
+  \item Bitcoin uses a stack based, non Turing complete scripting system to authorise spending of UTxOs.
+  \item Ethereum generalises blockchains into a universal replicated state machine with accounts, contracts, and global state.
+  \item The EVM is a stack machine with storage, memory, and stack; gas ensures that computation is bounded and paid for.
+  \item Solidity is a high level language for writing contracts, with explicit types, visibility, data locations, and support for inheritance.
+  \item Events, modifiers, and global variables are key tools for building practical contracts.
+  \item Ether transfers use \texttt{transfer}, \texttt{send}, or \texttt{call}; understanding their differences is important for security.
+\end{itemize}
+
 \end{document}
