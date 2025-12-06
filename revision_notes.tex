@@ -1255,4 +1255,163 @@ Best practice: use \texttt{call} together with the checks--effects--interactions
   \item Ether transfers use \texttt{transfer}, \texttt{send}, or \texttt{call}; understanding their differences is important for security.
 \end{itemize}
 
+
+\section{Week 4}
+
+\subsection{1. Lecture Overview}
+This lecture focuses on identifying security hazards in smart contracts and designing safer contract architectures. We examine four main attack vectors:
+\begin{itemize}
+    \item Denial-of-Service (DoS)
+    \item Griefing attacks
+    \item Reentrancy attacks
+    \item Front-running
+\end{itemize}
+
+Key defensive patterns include Pull-over-Push, Checks--Effects--Interactions, safe fallback design, avoiding \texttt{tx.origin}, safe randomness, and overflow/underflow protection.
+
+\subsection{2. Denial-of-Service and Griefing}
+
+\textbf{Unbounded loops} can make functions impossible to execute once arrays grow large.
+Example insecure pattern:
+\begin{verbatim}
+for (uint i=0; i<investors.length; i++) {
+    investors[i].addr.send(investors[i].dividendAmount);
+}
+\end{verbatim}
+
+As the array size increases, gas requirements exceed block limits, leading to DoS.  
+Griefing attacks intentionally exploit this by causing certain \texttt{send()} calls to fail, blocking all refunds.
+
+\textbf{Solution: Pull-over-Push}.  
+Instead of transferring funds inside a loop, store refund balances and allow users to withdraw individually.
+\begin{verbatim}
+// Pull model
+refunds[user] += amount;
+function withdrawRefund() external {
+    uint r = refunds[msg.sender];
+    refunds[msg.sender] = 0;
+    msg.sender.transfer(r);
+}
+\end{verbatim}
+
+\subsection{3. Reentrancy Attacks}
+
+A reentrancy attack occurs when an external call triggers a fallback function that re-enters the vulnerable contract before state updates occur.
+
+\textbf{Vulnerable pattern:}
+\begin{verbatim}
+uint amount = balances[msg.sender];
+require(msg.sender.call.value(amount)());
+balances[msg.sender] = 0;
+\end{verbatim}
+
+Attackers repeatedly drain funds through recursive fallback calls.  
+The DAO attack (2016) exploited this weakness, resulting in a \$50M loss.
+
+\textbf{Mitigation: Checks--Effects--Interactions.}
+\begin{verbatim}
+uint amount = balances[msg.sender];
+balances[msg.sender] = 0;
+msg.sender.transfer(amount);
+\end{verbatim}
+
+Additional protections: mutex locks, Pull-over-Push pattern.
+
+\subsection{4. Solidity-Specific Hazards}
+
+\textbf{4.1 Forcibly sending Ether}.  
+Ether can be sent to a contract without triggering fallback functions, e.g.:
+\begin{itemize}
+    \item \texttt{selfdestruct(target)}
+    \item precomputed contract addresses
+    \item block reward redirection
+\end{itemize}
+Thus, do not rely on strict balance equality.
+
+\textbf{4.2 Delegatecall hazards}.  
+\texttt{delegatecall} uses the caller's storage and \texttt{msg.sender}.  
+Malicious libraries can overwrite critical variables like \texttt{owner}.
+
+\textbf{4.3 Misuse of \texttt{tx.origin}}.  
+Using \texttt{tx.origin} for authorization enables phishing attacks. Always use \texttt{msg.sender}.
+
+\textbf{4.4 Fallback complexity}.  
+Fallback functions should contain minimal logic to avoid vulnerabilities such as reentrancy.
+
+\textbf{4.5 Default values}.  
+Uninitialized mapping entries return default values (e.g., 0).  
+Incorrect handling led to the Nomad Bridge hack (2022).
+
+\subsection{5. Merkle Tree Vulnerabilities}
+
+Sparse Merkle Trees assign empty values to uninitialized leaves, enabling forged proofs.  
+Binance Bridge was exploited through a manipulated AVL Merkle proof.  
+Avoid custom cryptographic implementations unless formally verified.
+
+\subsection{6. Front-running Attacks}
+
+Miners reorder transactions by gas price.  
+
+Example:
+\begin{verbatim}
+registerName("alice")
+\end{verbatim}
+An attacker sends:
+\begin{verbatim}
+registerName("alice") // higher gas price
+\end{verbatim}
+
+\textbf{Commit--Reveal Scheme} prevents this:
+\begin{itemize}
+    \item Commit: \texttt{hash(value, nonce)}
+    \item Reveal later
+    \item Verify hash
+\end{itemize}
+
+\subsection{7. Randomness Hazards}
+
+Sources like \texttt{block.timestamp}, \texttt{block.number}, \texttt{blockhash}, \texttt{msg.sender} are predictable or miner-controlled.
+
+Future blockhash is also insecure because miners can withhold or reorder blocks.
+
+\textbf{Secure randomness: Commit--Reveal}.  
+Both parties commit to random values, reveal later, then combine (e.g., XOR).  
+If either party is honest, randomness is secure.
+
+\subsection{8. Integer Overflow and Underflow}
+
+Prior to Solidity~0.8, arithmetic did not include overflow checks.  
+Example:
+\begin{verbatim}
+balance[msg.sender] -= value;
+\end{verbatim}
+
+Mitigation:
+\begin{itemize}
+    \item Use Solidity 0.8+ (automatic checks)
+    \item Use SafeMath for older versions
+\end{itemize}
+
+\subsection{9. Gas Fairness}
+
+Depending on contract design:
+\begin{itemize}
+    \item Last contributor may pay all gas
+    \item Beneficiary may pay
+    \item All parties may share costs
+\end{itemize}
+
+Fairness must be considered in crowdfunding or payout logic.
+
+\subsection{10. Example of an Insecure Contract}
+
+The Rock--Paper--Scissors example demonstrates:
+\begin{itemize}
+    \item Commit has no nonce, so the commitment \texttt{sha256(hand)} can be brute-forced (only 3 possibilities), letting an attacker discover the opponent's move before choosing their own.
+    \item Anyone can call \texttt{open()}, meaning any account can reveal moves for players or manipulate when the game resolves.
+    \item No deposit validation, so players can join without paying, and the contract incorrectly assumes it always holds exactly 1 ETH to pay the winner.
+    \item \texttt{selfdestruct} sends all funds to the caller, allowing any user who triggers \texttt{open()} to steal the entire contract balance.
+\end{itemize}
+
+
 \end{document}
