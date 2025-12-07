@@ -1414,4 +1414,195 @@ The Rock--Paper--Scissors example demonstrates:
 \end{itemize}
 
 
+\section{Week 5}
+
+\subsection{The Byzantine Generals Problem}
+
+The Byzantine Generals Problem describes the difficulty of reaching agreement in a distributed system where some participants may behave arbitrarily or maliciously.
+
+Key ideas:
+\begin{itemize}
+    \item Nodes may send conflicting or incorrect information.
+    \item Honest parties cannot tell which messages are trustworthy.
+    \item Reliable agreement requires a protocol that tolerates Byzantine faults.
+\end{itemize}
+
+This motivates the study of consensus protocols in adversarial environments.
+
+\subsection{The Consensus Problem}
+
+Consensus formalizes what it means for multiple parties to ``agree'' in a distributed setting.
+
+A protocol must satisfy three properties:
+
+\begin{itemize}
+    \item \textbf{Termination}: every honest party eventually outputs a value.
+    \item \textbf{Agreement}: all honest parties output the same value.
+    \item \textbf{Validity}: if all honest parties start with the same input $v$, the output must be $v$.
+\end{itemize}
+
+\textbf{Strong validity} ensures that the output must originate from an honest party's input.
+
+\subsection{Honest Majority Requirement}
+
+There are fundamental impossibility results:
+
+\begin{itemize}
+    \item An adversary controlling too many parties can force violations of agreement or validity.
+    \item In systems without trusted setup, consensus requires $t < n/3$ Byzantine faults.
+    \item With cryptographic setup (e.g., PKI), consensus under synchrony is possible with $t < n/2$.
+\end{itemize}
+
+Intuition: honest parties cannot distinguish among scenarios where different subsets of participants are corrupted; thus, too many adversarial parties break correctness.
+
+\subsection{Classical vs Ledger Consensus}
+
+Traditional consensus:
+\begin{itemize}
+    \item ``One-shot'' -- decides a single value.
+    \item Uses authenticated channels and fixed participants.
+    \item Ensures termination, agreement, validity.
+\end{itemize}
+
+Ledger (blockchain) consensus:
+\begin{itemize}
+    \item Runs indefinitely.
+    \item Must incorporate new transactions continuously.
+    \item Must tolerate dynamic participation and an unauthenticated, peer-to-peer network.
+\end{itemize}
+
+Ledger consensus replaces classical conditions with:
+\begin{itemize}
+    \item \textbf{Common Prefix} (consistency)
+    \item \textbf{Chain Growth} (liveness)
+    \item \textbf{Chain Quality} (adversarial influence bounded)
+\end{itemize}
+
+These properties define when a blockchain behaves like a consistent, append-only log.
+
+\subsection{The Bitcoin Backbone Model}
+
+Bitcoin is modeled as a protocol executed in synchronous rounds by many parties.
+
+Core components:
+\begin{itemize}
+    \item \textbf{Chain validation predicate}: checks PoW correctness and structural validity.
+    \item \textbf{Chain selection rule}: adopt the valid chain with the most cumulative work (``max-valid'' or longest chain rule).
+    \item \textbf{Proof of Work function}: probabilistic mechanism enabling random leader election.
+\end{itemize}
+
+A block contains:
+\begin{itemize}
+    \item $\text{ctr}$: nonce for PoW.
+    \item $x$: data such as transaction roots.
+    \item $s$: hash pointer to previous block.
+\end{itemize}
+
+Finding a valid block requires hashing until:
+\[
+H(\text{ctr} \Vert x \Vert s) < T
+\]
+where $T$ is the global difficulty target.
+
+\subsection{Key Security Properties of Blockchains}
+
+\subsubsection{Common Prefix (Consistency)}
+
+Honest parties’ blockchains differ only in the most recent $k$ blocks.  
+This ensures finalized blocks do not get reverted.
+
+Attack example:
+\begin{itemize}
+    \item \textbf{Racing attack}: adversary tries to build a secret chain to overtake the honest chain.
+\end{itemize}
+
+\subsubsection{Chain Growth}
+
+In any sufficiently long period, the honest chain grows by at least a linear number of blocks.
+
+Attack example:
+\begin{itemize}
+    \item \textbf{Abstention attack}: adversary withholds blocks to slow the chain.
+\end{itemize}
+
+\subsubsection{Chain Quality}
+
+In any window of blocks, the fraction of adversarial blocks is bounded.  
+This prevents adversaries from dominating the chain even if they temporarily get lucky.
+
+Attack example:
+\begin{itemize}
+    \item \textbf{Block withholding attack}: adversary tries to replace honest blocks whenever they find their own.
+\end{itemize}
+
+\subsection{From Blockchain Properties to Ledger Consensus}
+
+\begin{itemize}
+    \item \textbf{Consistency} of the ledger derives from the Common Prefix property.
+    \item \textbf{Liveness} derives from the combination of Chain Growth and Chain Quality.
+    \item Honest blocks eventually appear and become irreversible after $k$ confirmations.
+\end{itemize}
+
+Thus, the blockchain implements a robust form of asynchronous, permissionless consensus.
+
+\subsection{Proof of Work and Mining}
+
+PoW mining is essentially a randomized leader election mechanism.
+
+Properties:
+\begin{itemize}
+    \item Parallelizable: miners increase success probability by adding more hash power.
+    \item Easy verification: given the nonce, checking PoW is one hash computation.
+    \item Hard to shortcut: success probability is proportional to computational power.
+\end{itemize}
+
+\subsection{Mining Pools}
+
+Because PoW rewards are probabilistic, miners cooperate in pools:
+
+\begin{itemize}
+    \item Miners submit ``shares'' to prove contributed work.
+    \item Pool distributes rewards proportionally to contributed hash power.
+\end{itemize}
+
+\subsection{Dynamic Availability and Difficulty Adjustment}
+
+Bitcoin must operate despite fluctuating numbers of miners.
+
+\begin{itemize}
+    \item If total hash power increases, blocks appear too quickly.
+    \item If hash power decreases, block production slows.
+\end{itemize}
+
+Bitcoin adjusts difficulty every 2016 blocks to keep block intervals stable.
+
+Let $f$ be the probability that at least one honest miner finds a block in a round:
+\begin{itemize}
+    \item If $f$ is too small: chain grows too slowly → liveness suffers.
+    \item If $f$ is too large: many forks occur → consistency suffers.
+\end{itemize}
+
+Difficulty adjustment keeps $f$ within a safe range.
+
+\subsection{Difficulty Raising Attack}
+
+If the difficulty adjustment mechanism were poorly designed, an adversary with minority hash power could:
+\begin{itemize}
+    \item create a private chain with artificially high difficulty,
+    \item exploit increased variance to occasionally overtake the honest chain.
+\end{itemize}
+
+Bitcoin avoids this by bounding difficulty adjustment using the epoch threshold.
+
+\subsection{Summary}
+
+\begin{itemize}
+    \item Consensus in adversarial networks requires dealing with Byzantine faults.
+    \item Classical consensus properties map to blockchain properties: Common Prefix, Chain Growth, Chain Quality.
+    \item Bitcoin's PoW, longest chain rule, and difficulty adjustment together implement a secure ledger.
+    \item Attacks such as racing, withholding, and difficulty raising highlight why the assumptions and parameter choices matter.
+\end{itemize}
+
+
+
 \end{document}
