@@ -1603,6 +1603,350 @@ Bitcoin avoids this by bounding difficulty adjustment using the epoch threshold.
     \item Attacks such as racing, withholding, and difficulty raising highlight why the assumptions and parameter choices matter.
 \end{itemize}
 
+\section{Week 6}
+
+\subsection*{Permissionless Protocols and Dynamic Availability}
+
+Many blockchain protocols, such as Bitcoin, operate in a \textbf{permissionless} setting:
+
+\begin{itemize}
+  \item Anyone can join or leave the network without prior authorization.
+  \item Anyone can read the ledger and, after acquiring coins, submit transactions.
+  \item Participation in block production is open to anyone with the relevant resource (e.g.\ hash power).
+\end{itemize}
+
+The system must tolerate \textbf{dynamic availability}:
+
+\begin{itemize}
+  \item Nodes can come online or go offline at any time.
+  \item New nodes need to bootstrap from the existing chain (e.g.\ follow the longest valid chain).
+  \item There is no prior knowledge of how many parties are online at any moment.
+\end{itemize}
+
+Classic BFT protocols do not handle this type of open, highly dynamic participation. :contentReference[oaicite:0]{index=0}
+
+\subsection*{Bitcoin's Energy Problem and Motivation for PoS}
+
+Bitcoin uses Proof-of-Work (PoW) to solve consensus in a permissionless setting, but at a high cost:
+
+\begin{itemize}
+  \item Massive energy consumption due to hash-based mining.
+  \item Significant electronic waste from rapidly obsolete mining hardware.
+  \item An arms race between honest miners and attackers, where both must constantly burn energy. 
+\end{itemize}
+
+Empirical studies show that the climate damages per unit of Bitcoin value can be very high (comparable to some heavy industries), motivating \textbf{more energy efficient} consensus mechanisms such as Proof-of-Stake (PoS). :contentReference[oaicite:1]{index=1}
+
+\subsection*{Nakamoto Design Recap}
+
+The Nakamoto-style design has three main components:
+
+\begin{itemize}
+  \item Blocks are linked in a chain via hash pointers.
+  \item In case of forks, nodes adopt the chain with the most accumulated resource (e.g.\ most work).
+  \item New blocks are produced by a randomized lottery that selects leaders.
+\end{itemize}
+
+In PoW, the probability of winning the lottery is proportional to hash power.  
+In PoS, the idea is to make it proportional to \textbf{stake}, that is the amount of cryptocurrency controlled by a party. :contentReference[oaicite:2]{index=2}
+
+\subsection*{Proof-of-Stake Basics}
+
+In PoS systems:
+
+\begin{itemize}
+  \item \textbf{Stake} is the amount of tokens or coins controlled by a public key.
+  \item The protocol selects block producers based on stake.
+  \item Security requires that honest parties collectively control a majority of stake.
+\end{itemize}
+
+PoS is resource based but uses a \emph{digital} resource. This makes PoS energy efficient, since no physical work is required for the lottery. :contentReference[oaicite:3]{index=3}
+
+\subsection*{Time Slots and Leader Election}
+
+Many PoS protocols divide time into \textbf{slots}:
+
+\begin{itemize}
+  \item The slot length is chosen so that messages can propagate within one slot under the network assumptions.
+  \item Ideally, one block is produced per slot.
+  \item Parties use their local clock to determine the current slot and act accordingly.
+\end{itemize}
+
+Time slotting simplifies analyzing and designing leader election: in each slot, the protocol selects which stakeholders are eligible to create a block. :contentReference[oaicite:4]{index=4}
+
+\subsection*{From PoW to PoS: Design Attempts}
+
+We want to replace the PoW condition
+\[
+  H(x, s, ctr) < T
+\]
+with a PoS-based condition that selects leaders in proportion to stake, but without introducing new vulnerabilities.
+
+\subsubsection*{Attempt 1: Hash with Stake-Dependent Threshold}
+
+Require
+\[
+  H(x, s, vk_n) < T \cdot \text{stakeFactor}_n
+\]
+
+\begin{itemize}
+  \item The right-hand side scales with the stake of node \(n\).
+\end{itemize}
+
+\textbf{Problem: Grinding Attack on \(x\)}  
+The adversary can vary \(x\) (for example the transaction Merkle root) until the inequality holds, gaining unfair advantage.
+
+\subsubsection*{Attempt 2: Remove the Dependence on Block Content}
+
+Require
+\[
+  H(s, vk_n) < T \cdot \text{stakeFactor}_n
+\]
+
+\begin{itemize}
+  \item Now the left-hand side no longer depends on \(x\).
+\end{itemize}
+
+\textbf{Problem: Content Malleability}  
+Since transactions are not included in the hash, an attacker can change the block contents without affecting the PoS condition. This breaks ledger integrity.
+
+\subsubsection*{Attempt 3: Bind to History with Signatures}
+
+Keep the PoS condition similar, but add:
+
+\begin{itemize}
+  \item Use the signing key for \(vk_n\) to sign the block content and a hash of the whole history.
+\end{itemize}
+
+This prevents content malleability, because changing the history requires forging signatures.
+
+\textbf{Problem: Posterior Corruption}  
+The adversary can corrupt a leader after the fact and obtain their old signing keys, then re-sign a different history at no cost (costless simulation of the past).
+
+\subsubsection*{Attempt 4: Key Evolving Signatures (KES)}
+
+Introduce \textbf{Key Evolving Signatures}:
+
+\begin{itemize}
+  \item Each party periodically updates its signing key and deletes the old one.
+  \item The public key is fixed but internally refers to an evolving sequence of secret keys.
+  \item Old signatures remain verifiable, but old signing keys are supposed to be irretrievably erased.
+\end{itemize}
+
+This blocks posterior corruption, since even if a party is corrupted later, its previous signing keys should no longer exist.
+
+\textbf{Problem: Adaptive Attacks}  
+If the public verification key \(vk\) that will be eligible in some future slot is known in advance, an adversary can adaptively corrupt that party before it produces its block.
+
+\subsubsection*{Attempt 5: Verifiable Random Functions (VRFs)}
+
+Use a \textbf{VRF} in the PoS condition:
+
+\[
+  \text{VRF}(sk_n, s) < T \cdot \text{stakeFactor}_n
+\]
+
+\begin{itemize}
+  \item Each party privately evaluates the VRF using its secret key.
+  \item The VRF output is publicly verifiable using \(vk_n\).
+  \item A party only reveals the VRF proof if it wins the slot.
+\end{itemize}
+
+This hides the leader schedule, mitigating adaptive corruptions.
+
+\textbf{Problem: Stalling Hazard}  
+If no party satisfies the inequality in a slot, no block is produced and the same inputs could be reused, potentially stalling progress.
+
+\subsubsection*{Attempt 6: Adding Time to the VRF Input}
+
+To prevent stalling, extend the input with a time dependent value (such as slot or timestamp):
+
+\[
+  \text{VRF}(sk_n, s \parallel ts) < T \cdot \text{stakeFactor}_n
+\]
+
+\begin{itemize}
+  \item As time advances, the input changes, so the lottery is re-run with fresh randomness.
+  \item Combined with KES and signatures, this forms the basis of modern PoS protocols such as Ouroboros. 
+\end{itemize}
+
+This sequence of attempts highlights subtle attack surfaces (grinding, content malleability, posterior corruption, adaptive corruption, stalling) and how PoS designs address them.
+
+\subsection*{Dynamic Stake and Key Grinding}
+
+In realistic systems, stake changes over time:
+
+\begin{itemize}
+  \item Tokens are transferred between accounts.
+  \item New stakeholders appear and old ones may leave.
+\end{itemize}
+
+The stake distribution becomes dependent on the particular chain branch, since different branches can contain different transactions.
+
+\textbf{Key Grinding Attack}:
+
+\begin{itemize}
+  \item Keys are generated locally and are cheap to create.
+  \item An adversary can try many potential key pairs and keep those whose VRF outputs give favorable leadership schedules.
+\end{itemize}
+
+Mitigations include committing to keys before using them and deriving VRF inputs from shared randomness that is itself derived from past protocol outputs.
+
+\subsection*{Long-Range Attacks}
+
+A \textbf{long-range attack} exploits the fact that in PoS, creating blocks is cheap once the stake is in adversarial hands:
+
+\begin{itemize}
+  \item Starting from an old block, the adversary constructs a private fork consisting only of adversarial blocks.
+  \item On that fork, the adversary accumulates all block rewards, so their stake gradually dominates.
+  \item Since producing blocks has no physical cost, the adversary can simulate very long chains offline.
+  \item A newly joining node that sees both the honest chain and the adversarial long fork may be fooled into adopting the wrong one.
+\end{itemize}
+
+Two main countermeasures:
+
+\begin{itemize}
+  \item \textbf{Checkpointing}: honest participants rely on external trusted checkpoints (for example, from software updates or social consensus).
+  \item \textbf{Chain density}: use local density statistics to distinguish honest chains from long-range forks (for example as in Ouroboros Genesis, where the honest chain is denser shortly after forks). 
+\end{itemize}
+
+\subsection*{Permissioned Ledgers and PKI}
+
+In a \textbf{permissioned} ledger:
+
+\begin{itemize}
+  \item Only authorized participants can produce blocks or submit transactions.
+  \item The set of participants is often static and known from the genesis block.
+\end{itemize}
+
+A Public-Key Infrastructure (PKI) is used:
+
+\begin{itemize}
+  \item Certification authorities issue X.509 certificates binding public keys to identities.
+  \item Nodes authenticate each other using certificates and establish secure channels (for example via TLS).
+  \item Certificates can be revoked if keys are compromised or algorithms become insecure.
+\end{itemize}
+
+\subsection*{Centralized vs Distributed Permissioned Ledgers}
+
+\textbf{Centralized permissioned ledger (PoA)}:
+
+\begin{itemize}
+  \item A single server maintains the log of transactions.
+  \item Clients authenticate to the server to read or write.
+  \item Correctness and liveness rely entirely on the honesty and availability of the server.
+\end{itemize}
+
+\textbf{Distributed permissioned ledger}:
+
+\begin{itemize}
+  \item Multiple servers maintain replicated copies of the log.
+  \item All servers share a genesis block containing the authorized participants.
+  \item Writers send their inputs to all servers.
+  \item Servers run a consensus protocol to decide which inputs to append.
+\end{itemize}
+
+Access control for readers and writers can be enforced via certificates attached to the genesis block and subsequent updates. :contentReference[oaicite:12]{index=12}
+
+\subsection*{Classical BFT Consensus vs Nakamoto Consensus}
+
+\textbf{Classical BFT consensus}:
+
+\begin{itemize}
+  \item Typically permissioned and runs among a fixed set of nodes.
+  \item Does not rely on resource assumptions such as majority hash power or stake.
+  \item Communication complexity is high: all parties participate in each consensus instance.
+\end{itemize}
+
+\textbf{Nakamoto-style consensus}:
+
+\begin{itemize}
+  \item Typically permissionless.
+  \item Relies on an assumption that honest nodes control a majority of some resource (hash power or stake).
+  \item Communication complexity is low: only the current leader needs to broadcast its block.
+\end{itemize}
+
+\subsection*{Graded Broadcast and BFT-Ledger Construction}
+
+A key tool in BFT protocols is \textbf{graded broadcast} (graded consensus):
+
+\begin{itemize}
+  \item There is one sender and several receivers.
+  \item Each receiver outputs a pair \((M_i, G_i)\) where \(M_i\) is a message and \(G_i \in \{0,1,2\}\) is a grade.
+\end{itemize}
+
+Properties:
+
+\begin{itemize}
+  \item If the sender is honest, all honest receivers output the same message with grade 2.
+  \item If some honest receiver outputs \((M, 2)\), then all honest receivers output \(M\) with grade in \(\{1,2\}\).
+\end{itemize}
+
+Graded broadcast can be implemented in three communication rounds using threshold counts of messages (at least \(2n/3\) or at least \(n/3\)), assuming fewer than \(n/3\) Byzantine faults.
+
+By combining graded broadcast with a \textbf{binary consensus} protocol, one can build a BFT ledger where each phase appends a new block when all parties agree on the same message. :contentReference[oaicite:13]{index=13}
+
+\subsection*{Byzantine Binary Consensus and EIG}
+
+In \textbf{Byzantine binary consensus}, each party starts with a bit \(v_i \in \{0,1\}\) and must output a bit \(u_i\) such that:
+
+\begin{itemize}
+  \item Termination: all honest parties eventually output.
+  \item Agreement: all honest parties output the same bit.
+  \item Validity: if all honest parties start with the same bit \(v\), then they must output \(v\).
+\end{itemize}
+
+One generic solution uses the \textbf{Exponential Information Gathering} (EIG) algorithm:
+
+\begin{itemize}
+  \item In round 1, each party sends its input to all others.
+  \item In each subsequent round, parties forward what they heard in the previous round.
+  \item Each party builds a labeled tree of possible message chains and then uses majority rules bottom up to decide an output.
+\end{itemize}
+
+In the synchronous setting, EIG terminates in \(t+1\) rounds with up to \(t\) Byzantine faults, and achieves agreement and validity under appropriate bounds on \(n\) and \(t\). :contentReference[oaicite:14]{index=14}
+
+\subsection*{Impossibility Results and Thresholds}
+
+There are several classical impossibility results:
+
+\begin{itemize}
+  \item For synchronous systems, consensus is impossible if \(n < 3t + 1\).
+  \item For asynchronous systems, deterministic consensus is impossible with even a single fault (FLP result).
+  \item With cryptographic setup and signatures, some bounds can be relaxed, but there are still lower bounds on the number of rounds and required number of parties.
+\end{itemize}
+
+These results justify why Nakamoto-style protocols assume resource majority instead of attempting fully asynchronous BFT consensus. 
+
+\subsection*{BFT-style PoS Protocols}
+
+BFT-style PoS protocols (such as Algorand) combine PoS leader selection with BFT agreement:
+
+\begin{itemize}
+  \item In each slot, a committee of stakeholders is selected using a PoS lottery (often via VRFs).
+  \item The committee runs a BFT protocol to agree on the next block.
+  \item Blocks are finalized once the committee reaches agreement.
+\end{itemize}
+
+Security questions include:
+
+\begin{itemize}
+  \item How to derive secure randomness for committee selection.
+  \item How to prevent grinding attacks on randomness.
+  \item How to handle adaptive corruptions and long-range attacks.
+\end{itemize}
+
+\subsection*{Open Questions in Ledger Protocols}
+
+The lecture closes with several open research questions:
+
+\begin{itemize}
+  \item How to achieve permissionless clock synchronization and ensure that parties agree on time slots.
+  \item How to incentivize key erasure in KES based systems, and whether rational parties might keep old keys.
+  \item Whether systems can self-heal after temporary periods in which the adversary controls a majority of the resource (stake or hash power).
+\end{itemize}
+
+These questions are central to the ongoing development of secure and robust PoS and ledger protocols. :contentReference[oaicite:16]{index=16}
 
 
 \end{document}
