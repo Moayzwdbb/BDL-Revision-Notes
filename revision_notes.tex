@@ -1954,4 +1954,198 @@ The lecture closes with several open research questions:
 These questions are central to the ongoing development of secure and robust PoS and ledger protocols. :contentReference[oaicite:16]{index=16}
 
 
+\section{Week 7}
+
+\subsection{Cryptocurrency Economics and Incentives}
+
+This lecture introduces the economic foundations of blockchain protocols.
+Traditional analyses assume participants are either \emph{honest} or \emph{malicious}.
+Instead, real systems involve rational agents who maximize their own utility.
+
+Key questions:
+\begin{itemize}
+  \item Why should participants follow the protocol?
+  \item Are consensus properties (safety, liveness) emergent from incentives?
+  \item How do rewards, fees, and protocol rules shape rational behavior?
+\end{itemize}
+
+\subsection{Mining Incentives in Bitcoin}
+
+A miner's revenue consists of:
+\begin{itemize}
+  \item \textbf{Transaction fees}: 
+  \[
+    \text{fee} = \sum \text{inputs} - \sum \text{outputs}.
+  \]
+  \item \textbf{Block reward}: newly minted coins created in the coinbase transaction.
+\end{itemize}
+
+\textbf{Coinbase transaction}:
+\begin{itemize}
+  \item First transaction in every block.
+  \item No inputs; miner freely sets \texttt{scriptSig}.
+  \item Output value must not exceed block\-reward + total fees.
+\end{itemize}
+
+\subsubsection{Bitcoin monetary policy}
+
+\begin{itemize}
+  \item Initial reward: 50 BTC.
+  \item Reward halves every 210{,}000 blocks.
+  \item Supply approaches a cap of $\approx 21$ million BTC.
+\end{itemize}
+
+Early eras create a disproportionate fraction of all BTC, leading to highly concentrated wealth distribution.
+
+\subsection{Mining Profitability and Hardware}
+
+Bitcoin may be mined using:
+\begin{itemize}
+  \item CPUs
+  \item GPUs
+  \item ASICs (specialized hardware)
+\end{itemize}
+
+Due to difficulty and energy cost, most hardware today mines at a net loss.
+Mining profitability depends on:
+\begin{itemize}
+  \item electricity price,
+  \item hardware efficiency,
+  \item block reward and fee market,
+  \item network difficulty.
+\end{itemize}
+
+This motivates mining pools.
+
+\subsection{Nash Equilibrium in Blockchain Protocols}
+
+Each participant has a \textbf{utility function}:
+\[
+  f_i(x_1,\dots,x_n),
+\]
+mapping all parties' strategies to a real-valued reward.
+
+\textbf{Nash equilibrium}: no party can increase utility by unilaterally deviating.
+
+Two mining reward models:
+\begin{itemize}
+  \item \textbf{Absolute rewards}: total BTC earned.
+  \item \textbf{Relative rewards}: fraction of total BTC earned.
+\end{itemize}
+
+\textbf{Bitcoin under absolute rewards}: honest mining is a Nash equilibrium.  
+\textbf{Bitcoin under relative rewards}: not a Nash equilibrium — selfish mining yields higher expected utility.
+
+\subsection{Selfish Mining Attack}
+
+Selfish mining is a deviation strategy allowing a coalition of miners to increase their \emph{relative} share of block rewards.
+
+Key steps:
+\begin{enumerate}
+  \item Miner finds a block but withholds it (keeps it private).
+  \item If honest miners find competing blocks, attacker strategically releases withheld blocks.
+  \item Honest miners adopt attacker blocks first if attacker controls message propagation.
+\end{enumerate}
+
+Effects:
+\begin{itemize}
+  \item Public chain grows slower.
+  \item Attacker obtains $>\alpha$ fraction of rewards even with only $\alpha$ fraction of hash power.
+  \item With difficulty adjustment, absolute rewards may also increase.
+\end{itemize}
+
+\subsection{Block Reward Zero Attack}
+
+When block rewards become negligible, miners rely solely on transaction fees.
+
+A deviation becomes profitable:
+\begin{itemize}
+  \item If two blocks compete at the same height,
+  \item a rational miner may choose the block leaving \emph{more unclaimed fees} for the next block,
+  \item thus incentivizing mining on low-fee forks.
+\end{itemize}
+
+This threatens long-term stability when block rewards fade.
+
+\subsection{Bribery Attacks}
+
+An attacker creates a fork and includes a special transaction $\tau_0$ that offers a bribe to miners who extend the attacker's block.
+
+\begin{itemize}
+  \item $\tau_0$ double-spends its input on the public chain.
+  \item If attack fails, attacker loses nothing (the bribe is invalidated).
+  \item If miners adopt the fork, attacker may succeed at rewriting history.
+\end{itemize}
+
+Shows that economic incentives can be manipulated to undermine security.
+
+\subsection{Mining Pools and Pool Attacks}
+
+Miners join pools to reduce variance in income.
+
+\subsubsection{Pool mechanics}
+\begin{itemize}
+  \item Pool sets an internal (higher) target $T_{\text{pool}}$.
+  \item Miners submit ``shares'' proving partial work.
+  \item If a real block is found, rewards are split proportional to contributed shares.
+\end{itemize}
+
+\subsubsection{Block withholding attack}
+
+Pool A infiltrates Pool B with hash power $\alpha'$:
+\begin{itemize}
+  \item Infiltrators submit shares but withhold valid blocks.
+  \item Pool B's effective block rate decreases.
+  \item Pool A gains a larger \emph{relative} share of total network rewards.
+\end{itemize}
+
+This attack demonstrates competitive pressure among pools.
+
+\subsection{Utility in Real-World Markets}
+
+Real utility differs from in-protocol cryptocurrency utility.
+
+Factors:
+\begin{itemize}
+  \item Fiat-denominated costs (hardware, electricity).
+  \item Exchange rate volatility BTC/USD.
+  \item Transaction fees and liquidity.
+  \item Market reaction to attacks.
+\end{itemize}
+
+Surprisingly:
+\begin{itemize}
+  \item Markets often fail to penalize attacks.
+  \item E.g.\ Ethereum Classic suffered multiple 2020 double-spend attacks without severe price decline.
+\end{itemize}
+
+Thus “attack decreases price, so attackers won’t attack” is not a reliable security assumption.
+
+\subsection{Will Miners Attack Their Own System?}
+
+Game-theoretic conclusion:
+\begin{itemize}
+  \item If an attack is profitable in expected value \emph{inside the protocol},
+  \item and the external market does not sufficiently reduce price,
+  \item rational miners may attack even if they hold stake in the ecosystem.
+\end{itemize}
+
+This highlights the need for:
+\begin{itemize}
+  \item careful incentive engineering,
+  \item protocol design robust against rational deviations,
+  \item mechanisms that align long-term network health with miner profit.
+\end{itemize}
+
+\subsection{Quick Summary}
+
+\begin{itemize}
+  \item Bitcoin rewards (fees + subsidy) define miner incentives.
+  \item Under absolute rewards, honest mining is an equilibrium; under relative rewards, selfish mining breaks equilibrium.
+  \item Bribery, fee-driven attacks, and pool attacks reveal deeper incentive vulnerabilities.
+  \item Markets often fail to punish protocol-level attacks.
+  \item Economic analysis is necessary to understand and secure blockchain protocols.
+\end{itemize}
+
+
 \end{document}
