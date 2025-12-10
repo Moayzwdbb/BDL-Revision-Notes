@@ -2148,4 +2148,500 @@ This highlights the need for:
 \end{itemize}
 
 
+\section{Week 8}
+
+\subsection{Anonymity, Pseudonymity and Privacy}
+
+\subsubsection{Identity models}
+
+\textbf{Eponymous systems}:
+\begin{itemize}
+  \item Actions are directly linked to real-world identities.
+  \item Examples: Facebook (real-name policy), verified accounts with KYC, parliamentary voting records.
+\end{itemize}
+
+\textbf{Pseudonymous systems}:
+\begin{itemize}
+  \item Identities are represented by arbitrary tags or usernames.
+  \item A single user may control many pseudonyms; one pseudonym may be shared.
+  \item Examples: Reddit / X handles, email addresses, graffiti tags such as ``Banksy''.
+  \item \textbf{Sybil attack}: a single operator creates many pseudonyms to appear as many distinct participants.
+\end{itemize}
+
+\textbf{Anonymous systems}:
+\begin{itemize}
+  \item Actions cannot be linked to any particular participant.
+  \item Only the size of the \emph{anonymity set} (the group of indistinguishable users) is known.
+  \item Examples: secret ballots in elections, Tor usage as seen by a website.
+\end{itemize}
+
+\subsubsection{Anonymity vs fungibility}
+
+\begin{itemize}
+  \item \textbf{Fungibility}: any unit of a currency is interchangeable with any other.
+  \item In Bitcoin every satoshi has a visible history on chain, so coins can be tainted or blacklisted.
+  \item Privacy weaknesses therefore also impact fungibility.
+\end{itemize}
+
+\subsection{Bitcoin Privacy and Transaction Graph Analysis}
+
+\subsubsection{Address reuse and pseudonymity}
+
+\begin{itemize}
+  \item Users can create arbitrary many new addresses without on-chain cost.
+  \item In principle this gives pseudonymity, but transaction graph analysis can cluster addresses.
+\end{itemize}
+
+\subsubsection{Transaction graph analysis}
+
+\begin{itemize}
+  \item Nodes: addresses or transactions; edges: flows of value.
+  \item Common patterns:
+  \begin{itemize}
+    \item \textbf{Peeling chain}: large UTXO is repeatedly split, sending small amounts and a ``peel'' change output each time.
+    \item \textbf{Star}: one address sends to many others in a hub-and-spoke pattern.
+  \end{itemize}
+  \item These patterns help chain-analytic companies link addresses to the same user.
+\end{itemize}
+
+\subsubsection{Indistinguishability examples}
+
+\begin{itemize}
+  \item If Alice receives 50 BTC twice, the on-chain view may or may not reveal whether payments go to one person or two different ones.
+  \item In many realistic spending patterns, observers can assign higher probability to one ``world'' (e.g.\ Alice-only) than to another (Alice plus Charlie), breaking privacy.
+\end{itemize}
+
+\subsection{Centralized Mixing and CoinJoin}
+
+\subsubsection{Centralized mix}
+
+\begin{itemize}
+  \item Users send coins to a \emph{trusted party} that returns coins to recipients in shuffled order.
+  \item The anonymity set has size \(n\) (the number of participants), but:
+  \begin{itemize}
+    \item the mixer can steal funds or log all mappings,
+    \item it becomes a single point of failure and a target for regulation or seizure.
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{CoinJoin idea}
+
+\begin{itemize}
+  \item Multiple users jointly create a single transaction that mixes their inputs and outputs.
+  \item Example: Alice and Charlie each spend inputs to standardized outputs (e.g.\ 1 BTC each).
+  \item After mixing, an external observer cannot tell which input funded which standardized output.
+\end{itemize}
+
+\subsubsection{Multiple-input CoinJoin protocol}
+
+\begin{itemize}
+  \item Parties: \(n\) participants and one temporary \emph{leader}.
+  \item Setup:
+  \begin{itemize}
+    \item Each participant sends to the leader:
+    \begin{itemize}
+      \item their recipient address \(b_i\),
+      \item their change address \(c_i\),
+      \item the corresponding amounts.
+    \end{itemize}
+    \item Leader constructs a combined transaction from all inputs and outputs.
+  \end{itemize}
+  \item Signing:
+  \begin{itemize}
+    \item Leader broadcasts the unsigned multi-input transaction to all participants.
+    \item Each participant checks it and sends their signature back.
+    \item Once all signatures are collected, the leader broadcasts the final transaction.
+  \end{itemize}
+  \item Abort issues and questions:
+  \begin{itemize}
+    \item Any participant can abort and prevent publication (DoS).
+    \item A malicious leader can correlate inputs and outputs and violate privacy.
+    \item It is non-trivial to restart without the offending party while preserving privacy.
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{Passive vs active adversaries}
+
+\begin{itemize}
+  \item \textbf{Passive} adversary: only observes on-chain transactions, gains anonymity set of size \(n\) per CoinJoin.
+  \item \textbf{Active} adversary: participates in protocol (e.g.\ as leader) and sees mappings between participants and addresses, breaking privacy.
+\end{itemize}
+
+\subsection{Mix-nets and CoinJoin}
+
+\subsubsection{Mix-nets}
+
+\begin{itemize}
+  \item A mix-net is a sequence of ``mix'' servers that shuffle and re-encrypt messages.
+  \item As long as at least one mix in the chain is honest, it is impossible to link input messages to outputs.
+  \item Two main variants:
+  \begin{itemize}
+    \item \textbf{Decryption mix-nets}: messages are layered with multiple public-key encryptions, each mix strips one layer and shuffles.
+    \item \textbf{Re-encryption mix-nets}: mixes probabilistically re-encrypt and shuffle.
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{Using mix-nets for CoinJoin}
+
+\begin{itemize}
+  \item All participants first publish their public keys; mappings from public keys to accounts are public.
+  \item They feed their addresses and amounts through a decryption mix-net.
+  \item The final mix (leader) receives a shuffled list of outputs and can assemble the CoinJoin transaction but cannot tell which participant contributed which.
+  \item Participants then sign the transaction as usual.
+\end{itemize}
+
+\subsubsection{Limitations and Mimblewimble}
+
+\begin{itemize}
+  \item Even with CoinJoin, output balances remain visible on chain.
+  \item Mimblewimble-style systems use \textbf{Pedersen commitments}:
+  \begin{itemize}
+    \item Commitments hide balances but are additively homomorphic.
+    \item A transaction proves that sum of inputs minus outputs equals zero without revealing amounts.
+  \end{itemize}
+\end{itemize}
+
+\subsection{Blind Signatures, E-cash and Fair Swaps}
+
+\subsubsection{Blind signatures}
+
+\begin{itemize}
+  \item A user blinds a message \(m\), sends it to a signer who produces a signature on the blinded value.
+  \item After unblinding, the user obtains a valid signature on \(m\) that cannot be linked back to the signing interaction.
+  \item Properties:
+  \begin{itemize}
+    \item Signature verifies against \(m\) and public key \(vk\).
+    \item Signer never sees the cleartext message.
+    \item Signer cannot link later published \((m,\sigma)\) pairs to specific users.
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{Chaum's e-cash}
+
+\begin{itemize}
+  \item Bank issues e-coins by blind-signing structured coin tokens.
+  \item User withdraws an e-coin, then later presents it to a shop.
+  \item Shop checks with the bank that the coin has not been spent before and that the signature is valid.
+  \item Gives strong payer anonymity, but the bank is a trusted central party.
+\end{itemize}
+
+\subsubsection{Applying e-cash to Bitcoin payments}
+
+\begin{itemize}
+  \item A trustee exchanges on-chain BTC for off-chain e-coins via blind signatures.
+  \item Users spend e-coins to shops, which redeem them for BTC from the trustee.
+  \item Anonymity holds only if the trustee behaves correctly and does not log linkages or disappear with funds.
+\end{itemize}
+
+\subsubsection{Fair swaps}
+
+\begin{itemize}
+  \item Goal: two parties exchange secrets or assets so that either both receive their output or none do.
+  \item Purely network-based fair exchange is impossible under standard assumptions.
+  \item Workarounds:
+  \begin{itemize}
+    \item \textbf{Optimistic fair exchange} with a trusted third party used only for dispute resolution.
+    \item \textbf{Resource-based fair exchange}: parties exchange partial information, so aborting gives the other party an advantage.
+    \item \textbf{Fair swaps with penalties}: use a smart contract that escrows deposits and penalizes aborting parties financially.
+  \end{itemize}
+\end{itemize}
+
+\subsection{Group Signatures, Ring Signatures and Monero}
+
+\subsubsection{Group signatures}
+
+\begin{itemize}
+  \item System has a group manager and an opening authority.
+  \item Any registered member can sign on behalf of the group:
+  \begin{itemize}
+    \item Verifier is convinced that ``some group member'' signed.
+    \item Opening authority can later reveal which one, if necessary.
+  \end{itemize}
+  \item Useful for accountable anonymity.
+\end{itemize}
+
+\subsubsection{Traceable signatures}
+
+\begin{itemize}
+  \item Allow tracing across multiple signatures from the same user.
+  \item Provide linkability or revocation for misbehaving members while preserving anonymity in normal cases.
+\end{itemize}
+
+\subsubsection{Ring signatures}
+
+\begin{itemize}
+  \item Signer chooses an arbitrary set of public keys (ring).
+  \item Produces a signature that proves ``one of these keys signed'' but not which.
+  \item No group manager or central authority is required.
+  \item Verifier only knows that the signer is a member of the chosen anonymity set.
+\end{itemize}
+
+\subsubsection{Monero / Cryptonote}
+
+\begin{itemize}
+  \item Uses \textbf{linkable ring signatures}:
+  \begin{itemize}
+    \item Each coin output is one member of a ring.
+    \item A key image ensures that spending the same output twice is detectable and linkable.
+  \end{itemize}
+  \item \textbf{Stealth addresses}:
+  \begin{itemize}
+    \item Sender creates one-time addresses for the recipient, unlinkable on chain.
+    \item Recipient scans chain with their private view key to detect payments.
+  \end{itemize}
+  \item Provides stronger default privacy than Bitcoin, but anonymity still depends on real-world threat models and how rings are constructed.
+\end{itemize}
+
+\subsubsection{Anonymity set relevance}
+
+\begin{itemize}
+  \item A large anonymity set is only useful if the adversary cannot shrink it using side information.
+  \item Example: a student using Tor on a campus network might be the only Tor user at a given time, making deanonymization easier despite Tor's design.
+\end{itemize}
+
+\subsection{Commitments, Zerocash and ZK-SNARKs}
+
+\subsubsection{Commitments over the UTXO set}
+
+\begin{itemize}
+  \item For each coin, create a commitment \(\psi = \text{Commit}(\rho,(v,sn))\):
+  \begin{itemize}
+    \item \(\rho\): randomness,
+    \item \(v\): value,
+    \item \(sn\): serial number.
+  \end{itemize}
+  \item \(\psi\) is recorded in the ledger; opening reveals \(v\) and \(sn\) while hiding them from observers.
+  \item Spending a coin reveals \(sn\) and proves that some ledger commitment contains \((v,sn)\) without showing which.
+\end{itemize}
+
+\subsubsection{Merkle tree over commitments}
+
+\begin{itemize}
+  \item All commitments are stored in a Merkle tree.
+  \item Spending proof shows:
+  \begin{itemize}
+    \item existence of a leaf \(\psi_i\) equal to \(\text{Commit}(\rho,(v,sn))\),
+    \item membership via a Merkle inclusion proof.
+  \end{itemize}
+  \item Statement and witness sizes grow only logarithmically in the number of coins.
+\end{itemize}
+
+\subsubsection{ZK-SNARK definition}
+
+\begin{itemize}
+  \item A SNARK is a \textbf{succinct, non-interactive argument of knowledge} for statements of the form:
+  \[
+    \exists w: R(x,w) = 1
+  \]
+  where \(R\) is a polynomial-time relation.
+  \item Properties:
+  \begin{itemize}
+    \item \textbf{Soundness}: cheating provers cannot convince verifier of false statements, except with negligible probability.
+    \item \textbf{Zero-knowledge}: proof reveals no information about witness \(w\) beyond truth of the statement.
+    \item \textbf{Succinctness}: proof size and verification time are independent of witness size and running time of \(R\).
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{Zerocash coins and pour operations}
+
+\begin{itemize}
+  \item Accounts have a key pair \((vk,sk)\).
+  \item Coin structure includes:
+  \begin{itemize}
+    \item \(vk\): public key of owner,
+    \item \(v\): value,
+    \item random seeds \(\rho,s,s'\),
+    \item derived serial number \(sn = \text{PRF}_{sk}(\rho)\),
+    \item commitments \(k = \text{Commit}(s, vk \Vert \rho)\) and \(\psi = \text{Commit}(s', v \Vert k)\).
+  \end{itemize}
+  \item \textbf{Pour} operation:
+  \begin{itemize}
+    \item Consume one coin and create two new coins of values \(v_1,v_2\) with \(v_1+v_2=v\).
+    \item Reveal serial number \(sn\) and prove in zero-knowledge that:
+    \begin{itemize}
+      \item some Merkle leaf corresponds to a valid coin with that \(sn\),
+      \item the value is conserved,
+      \item new coins are well formed.
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{Common Reference String (CRS)}
+
+\begin{itemize}
+  \item Many SNARK schemes require a shared setup string.
+  \item Generated via trusted setup or secure multi-party computation.
+  \item \textbf{Updateable reference strings} and alternative proof systems (e.g.\ Bulletproofs) reduce trust but often at higher computational cost.
+\end{itemize}
+
+\subsection{Network Security and the Bitcoin P2P Layer}
+
+\subsubsection{Overlay networks and requirements}
+
+\begin{itemize}
+  \item Blockchain protocols run on overlay networks built on top of the Internet.
+  \item Desired properties:
+  \begin{itemize}
+    \item Timely (synchronous) message delivery within known bounds.
+    \item Reliable point-to-point channels.
+    \item Reliable broadcast for blocks and transactions.
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{Bitcoin's P2P design}
+
+\begin{itemize}
+  \item Peers are identified by IP addresses and communicate over TCP.
+  \item Nodes maintain a limited number of outbound and inbound connections.
+  \item Public vs private networks:
+  \begin{itemize}
+    \item Public IP hosts reachable directly.
+    \item Private IP hosts behind NAT use a router to reach the Internet.
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{Peer discovery and address tables}
+
+\begin{itemize}
+  \item New nodes contact DNS seeders to get initial lists of peer IPs.
+  \item Nodes gossip addresses via \texttt{ADDR} messages.
+  \item Each node maintains:
+  \begin{itemize}
+    \item a \texttt{new} table: addresses learned but not yet tried,
+    \item a \texttt{tried} table: peers that have successfully connected.
+  \end{itemize}
+  \item Connection selection uses a bias based on the ratio \(\rho\) between tried and new addresses, and recency of timestamps.
+\end{itemize}
+
+\subsubsection{Eclipse attacks}
+
+\begin{itemize}
+  \item Goal: isolate a victim node so all its connections are controlled by the attacker.
+  \item Steps:
+  \begin{itemize}
+    \item Attacker fills victim's \texttt{tried} table with adversarial IPs by repeatedly connecting.
+    \item Attacker floods \texttt{new} table with unreachable ``trash'' IPs via unsolicited \texttt{ADDR} messages.
+    \item When victim restarts, it reconnects mostly to adversarial addresses.
+    \item Attacker also saturates incoming connection slots so honest nodes cannot connect.
+  \end{itemize}
+  \item Consequences:
+  \begin{itemize}
+    \item Victim's view of the blockchain is fully controlled and can be censored.
+    \item Victim's blocks and transactions may never reach the honest network.
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{Mitigations}
+
+\begin{itemize}
+  \item Restrict unsolicited \texttt{ADDR} messages.
+  \item Diversify peers across IP ranges and autonomous systems.
+  \item Probe peers before evicting long-lived entries from the \texttt{tried} table.
+\end{itemize}
+
+\subsubsection{Information propagation and MITM}
+
+\begin{itemize}
+  \item Bitcoin uses an inventory-based protocol:
+  \begin{itemize}
+    \item Node announces object hashes via \texttt{inv}.
+    \item Peers request full objects via \texttt{getdata}.
+  \end{itemize}
+  \item Connections have a timeout window (for example, 20 minutes) before being dropped.
+  \item A man-in-the-middle that delays or modifies messages can significantly slow block propagation and harm security.
+\end{itemize}
+
+\subsection{Wallets, SPV and Key Management}
+
+\subsubsection{Full node wallets}
+
+\begin{itemize}
+  \item Store the entire blockchain plus UTXO set.
+  \item Verify all transactions and blocks independently.
+  \item Provide strongest security and privacy but require large storage and bandwidth.
+\end{itemize}
+
+\subsubsection{Merkle trees and SPV}
+
+\begin{itemize}
+  \item Blocks store only the Merkle root of transactions in their header.
+  \item This allows lightweight \textbf{Simple Payment Verification (SPV)} clients:
+  \begin{itemize}
+    \item Download only block headers, not full blocks.
+    \item Rely on full nodes to provide relevant transactions plus Merkle proofs.
+    \item Verify PoW chain and inclusion of their own transactions.
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{SPV protocol and security}
+
+\begin{itemize}
+  \item SPV wallet:
+  \begin{itemize}
+    \item connects to several full nodes,
+    \item sends a Bloom filter encoding its addresses so servers can filter relevant transactions,
+    \item verifies signatures, basic transaction validity and inclusion under the correct Merkle root.
+  \end{itemize}
+  \item Assumes an honest majority of hash power.
+  \item Does not hold full UTXO set and does not see unrelated transactions.
+  \item A malicious server can only mislead the wallet temporarily by building an invalid fork or hiding transactions.
+\end{itemize}
+
+\subsubsection{HD wallets and seeds}
+
+\begin{itemize}
+  \item Hierarchical Deterministic (HD) wallets derive many key pairs from one master private key (BIP-32).
+  \item A short mnemonic seed encodes the master key and can recover the whole wallet.
+  \item Seed should be backed up offline, usually on paper and optionally encrypted with a passphrase.
+\end{itemize}
+
+\subsubsection{Hot vs cold wallets}
+
+\begin{itemize}
+  \item \textbf{Hot wallet}:
+  \begin{itemize}
+    \item Private keys on an Internet-connected device.
+    \item Convenient for everyday spending.
+    \item Higher risk of theft via malware or compromises.
+  \end{itemize}
+  \item \textbf{Cold wallet}:
+  \begin{itemize}
+    \item Private keys stored offline.
+    \item Safer against remote attacks, less convenient for frequent payments.
+    \item Balance can still be monitored via public keys on an online device.
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{Paper, brain and hardware wallets}
+
+\begin{itemize}
+  \item \textbf{Paper wallet}:
+  \begin{itemize}
+    \item Private key printed on paper, possibly encrypted with a passphrase.
+    \item Secure against online attacks, but vulnerable to physical loss or damage.
+  \end{itemize}
+  \item \textbf{Brain wallet}:
+  \begin{itemize}
+    \item Private key derived from a human-memorizable passphrase.
+    \item Extremely unsafe in practice due to low-entropy passwords; many have been brute-forced.
+  \end{itemize}
+  \item \textbf{Hardware wallet}:
+  \begin{itemize}
+    \item Dedicated device (e.g.\ Trezor, Ledger) storing keys in secure hardware.
+    \item Keys never leave the device; device signs transactions and returns them to the host computer.
+    \item Provides strong security even if the host computer is compromised.
+    \item Protected by PIN and backed up via a seed.
+  \end{itemize}
+\end{itemize}
+
+\subsection{Overall Takeaways}
+
+\begin{itemize}
+  \item Blockchain privacy ranges from pseudonymous to anonymous, and depends heavily on protocol design and user behavior.
+  \item Techniques such as CoinJoin, mix-nets, blind signatures, ring signatures and ZK-SNARK-based systems aim to enlarge and protect anonymity sets.
+  \item Network-layer security, especially resistance to eclipse and MITM attacks, is critical for maintaining consensus and censorship resistance.
+  \item Wallet design (full node vs SPV, hot vs cold, HD vs hardware) reflects trade-offs between usability, security and privacy.:contentReference[oaicite:0]{index=0}
+\end{itemize}
+
+
 \end{document}
