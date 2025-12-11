@@ -1258,7 +1258,7 @@ Best practice: use \texttt{call} together with the checks--effects--interactions
 
 \section{Week 4}
 
-\subsection{1. Lecture Overview}
+\subsection{Lecture Overview}
 This lecture focuses on identifying security hazards in smart contracts and designing safer contract architectures. We examine four main attack vectors:
 \begin{itemize}
     \item Denial-of-Service (DoS)
@@ -1269,7 +1269,7 @@ This lecture focuses on identifying security hazards in smart contracts and desi
 
 Key defensive patterns include Pull-over-Push, Checks--Effects--Interactions, safe fallback design, avoiding \texttt{tx.origin}, safe randomness, and overflow/underflow protection.
 
-\subsection{2. Denial-of-Service and Griefing}
+\subsection{Denial-of-Service and Griefing}
 
 \textbf{Unbounded loops} can make functions impossible to execute once arrays grow large.
 Example insecure pattern:
@@ -1294,7 +1294,7 @@ function withdrawRefund() external {
 }
 \end{verbatim}
 
-\subsection{3. Reentrancy Attacks}
+\subsection{Reentrancy Attacks}
 
 A reentrancy attack occurs when an external call triggers a fallback function that re-enters the vulnerable contract before state updates occur.
 
@@ -1317,9 +1317,9 @@ msg.sender.transfer(amount);
 
 Additional protections: mutex locks, Pull-over-Push pattern.
 
-\subsection{4. Solidity-Specific Hazards}
+\subsection{Solidity-Specific Hazards}
 
-\textbf{4.1 Forcibly sending Ether}.  
+\textbf{Forcibly sending Ether}.  
 Ether can be sent to a contract without triggering fallback functions, e.g.:
 \begin{itemize}
     \item \texttt{selfdestruct(target)}
@@ -1342,13 +1342,13 @@ Fallback functions should contain minimal logic to avoid vulnerabilities such as
 Uninitialized mapping entries return default values (e.g., 0).  
 Incorrect handling led to the Nomad Bridge hack (2022).
 
-\subsection{5. Merkle Tree Vulnerabilities}
+\subsection{Merkle Tree Vulnerabilities}
 
 Sparse Merkle Trees assign empty values to uninitialized leaves, enabling forged proofs.  
 Binance Bridge was exploited through a manipulated AVL Merkle proof.  
 Avoid custom cryptographic implementations unless formally verified.
 
-\subsection{6. Front-running Attacks}
+\subsection{Front-running Attacks}
 
 Miners reorder transactions by gas price.  
 
@@ -1368,7 +1368,7 @@ registerName("alice") // higher gas price
     \item Verify hash
 \end{itemize}
 
-\subsection{7. Randomness Hazards}
+\subsection{Randomness Hazards}
 
 Sources like \texttt{block.timestamp}, \texttt{block.number}, \texttt{blockhash}, \texttt{msg.sender} are predictable or miner-controlled.
 
@@ -1378,7 +1378,7 @@ Future blockhash is also insecure because miners can withhold or reorder blocks.
 Both parties commit to random values, reveal later, then combine (e.g., XOR).  
 If either party is honest, randomness is secure.
 
-\subsection{8. Integer Overflow and Underflow}
+\subsection{Integer Overflow and Underflow}
 
 Prior to Solidity~0.8, arithmetic did not include overflow checks.  
 Example:
@@ -1392,7 +1392,7 @@ Mitigation:
     \item Use SafeMath for older versions
 \end{itemize}
 
-\subsection{9. Gas Fairness}
+\subsection{Gas Fairness}
 
 Depending on contract design:
 \begin{itemize}
@@ -1403,7 +1403,7 @@ Depending on contract design:
 
 Fairness must be considered in crowdfunding or payout logic.
 
-\subsection{10. Example of an Insecure Contract}
+\subsection{Example of an Insecure Contract}
 
 The Rock--Paper--Scissors example demonstrates:
 \begin{itemize}
@@ -2641,6 +2641,305 @@ This highlights the need for:
   \item Techniques such as CoinJoin, mix-nets, blind signatures, ring signatures and ZK-SNARK-based systems aim to enlarge and protect anonymity sets.
   \item Network-layer security, especially resistance to eclipse and MITM attacks, is critical for maintaining consensus and censorship resistance.
   \item Wallet design (full node vs SPV, hot vs cold, HD vs hardware) reflects trade-offs between usability, security and privacy.:contentReference[oaicite:0]{index=0}
+\end{itemize}
+
+\section{Week 9}
+
+\subsection{Security-Critical Computations}
+
+Many computations in adversarial environments must guarantee correctness, privacy, and robustness even when participants misbehave.
+
+Three categories:
+\begin{itemize}
+    \item \textbf{Deterministic with public inputs}: correctness is publicly checkable (e.g.\ recomputation).
+    \item \textbf{Probabilistic with public inputs}: requires coordination to avoid bias (e.g.\ coin flipping).
+    \item \textbf{Private inputs}: requires Secure Multiparty Computation (MPC).
+\end{itemize}
+
+
+\subsection{Passive vs Active Adversaries}
+
+\textbf{Passive adversary (semi-honest)}:
+\begin{itemize}
+    \item Follows protocol steps exactly.
+    \item Tries to learn extra information from received messages.
+\end{itemize}
+
+\textbf{Active adversary (malicious)}:
+\begin{itemize}
+    \item May deviate arbitrarily.
+    \item Sends malformed or inconsistent messages.
+    \item May send different data to different parties.
+    \item Can refuse to participate at critical moments (selective abort).
+\end{itemize}
+
+Most MPC protocols secure against passive adversaries \emph{completely fail} in the active setting.
+
+
+\subsection{Coin Flipping and Selective Abort}
+
+Goal: generate a shared random bit between two distrustful parties.
+
+Passive-secure protocol:
+\begin{enumerate}
+    \item Alice commits to $x$.
+    \item Bob sends $y$.
+    \item Alice opens $x$.
+    \item Output: $x \oplus y$.
+\end{enumerate}
+
+\textbf{Selective abort attack:}  
+Alice learns the final bit $x \oplus y$ before Bob does.  
+If she dislikes the outcome, she refuses to open the commitment.
+
+Thus:
+\begin{itemize}
+    \item Alice learns the output.
+    \item Bob learns nothing.
+\end{itemize}
+
+This violates \textbf{fairness}, showing:
+
+\[
+\textbf{Two-party fair coin flipping is impossible without extra assumptions.}
+\]
+
+
+\subsection{Secret Sharing}
+
+\subsubsection{Additive sharing}
+
+A bit $s$ is shared as:
+\[
+s = a \oplus b,
+\]
+where $a$ is uniform and $b = s \oplus a$.
+
+Each share reveals nothing individually.
+
+\subsubsection{Shamir secret sharing}
+
+Let $p(x)$ be a degree-$t$ polynomial with $p(0) = s$.
+
+\begin{itemize}
+    \item Share to party $i$: $p(i)$.
+    \item Any $t+1$ points reconstruct $p(0)$.
+    \item Fewer than $t+1$ points reveal no information.
+\end{itemize}
+
+
+\subsection{Verifiable Secret Sharing (VSS)}
+
+Passive schemes break under malicious behavior.  
+\textbf{VSS ensures shares are consistent even if the dealer is malicious}.
+
+Key tools:
+\begin{itemize}
+    \item \textbf{Commitments}: dealer commits to polynomial coefficients (binding and hiding).
+    \item \textbf{Encrypted shares}: each $p(i)$ is encrypted under $pk_i$.
+    \item \textbf{NIZK proofs}: public proofs that encrypted shares form a valid Shamir sharing.
+\end{itemize}
+
+During reconstruction:
+\begin{itemize}
+    \item Parties broadcast shares.
+    \item Reject inconsistent or invalid shares.
+    \item Honest majority reconstructs the correct secret despite malicious participants.
+\end{itemize}
+
+VSS is the foundation for \textbf{active-secure MPC}.
+
+
+\subsection{Secure Multiparty Computation (MPC)}
+
+Goal:
+\[
+y = f(x_1, \dots, x_n)
+\]
+such that correctness and privacy hold even against malicious parties.
+
+\subsubsection{Computation on shared values}
+
+\paragraph{Addition} is local:
+\[
+[a] + [b] = [a+b].
+\]
+
+\paragraph{Multiplication} uses Beaver triples:  
+Shared values $(u,v,w)$ with $w = uv$ are preprocessed.  
+Enables multiplication with only one communication round.
+
+\subsubsection{Output reconstruction and fairness}
+
+Reconstruction requires all parties to reveal shares.
+
+\textbf{Fairness problem:}  
+A malicious party can learn the output first and then abort, preventing others from learning it.
+
+Thus \emph{MPC cannot guarantee fairness without additional assumptions}.
+
+
+\subsection{Fairness and Its Impossibility}
+
+A protocol is fair if:
+\begin{itemize}
+    \item either all honest parties receive output,
+    \item or none do.
+\end{itemize}
+
+\textbf{Impossibility:}  
+In two-party settings, fairness cannot be achieved without:
+\begin{itemize}
+    \item trusted third parties,
+    \item financial penalties,
+    \item time-locked mechanisms,
+    \item or blockchain enforcement.
+\end{itemize}
+
+
+\subsection{Fair Swaps via Blockchains}
+
+Blockchains provide:
+\begin{itemize}
+    \item immutable logs,
+    \item time-locks,
+    \item enforceable penalties.
+\end{itemize}
+
+Two transactions:
+\begin{itemize}
+    \item \textbf{Publish TX}: reveals data or share.
+    \item \textbf{Refund TX}: time-locked; refunds deposit if publish does not occur.
+\end{itemize}
+
+Properties:
+\begin{itemize}
+    \item Rational players cannot gain by aborting.
+    \item Aborting results in monetary loss.
+    \item Fairness becomes enforceable without secrecy on chain.
+\end{itemize}
+
+
+\subsection{Fair MPC via Fair Swap}
+
+\begin{enumerate}
+    \item MPC produces additive or Shamir sharings of output $y$: each party holds $y_i$.
+    \item Parties exchange shares via blockchain-enforced fair swaps.
+\end{enumerate}
+
+If a party aborts:
+\begin{itemize}
+    \item honest parties receive compensation,
+    \item no adversary gains advantage.
+\end{itemize}
+
+
+\subsection{N-Party Ladder Fairness}
+
+Generalization of fair swaps to $n$ parties.
+
+Structure:
+\begin{itemize}
+    \item Party $P_i$ reveals a prefix $(w_1,\dots,w_i)$.
+    \item Deposits scale with position: $iB$ for $P_i$.
+    \item Time-locks are staggered to prevent profitable aborts.
+\end{itemize}
+
+If $P_k$ aborts:
+\begin{itemize}
+    \item parties $1,\dots,k-1$ recover compensation,
+    \item harm is limited to a predictable range.
+\end{itemize}
+
+Ensures honest behavior is the dominant strategy.
+
+
+\subsection{Publicly Verifiable Secret Sharing (PVSS)}
+
+PVSS strengthens VSS:
+
+\begin{itemize}
+    \item Anyone (not only participants) can verify correctness of shares.
+    \item Enables public randomness beacons and distributed key generation.
+\end{itemize}
+
+Mechanisms:
+\begin{itemize}
+    \item Encryption of shares.
+    \item Public zero-knowledge proofs of correct sharing.
+\end{itemize}
+
+
+\subsection{Post-Quantum Security}
+
+Quantum computers threaten classical cryptography.
+
+\subsubsection{Shor's algorithm}
+
+Breaks:
+\begin{itemize}
+    \item RSA,
+    \item Diffie-Hellman,
+    \item Elliptic-curve signatures (ECDSA, Schnorr).
+\end{itemize}
+
+\subsubsection{Grover's algorithm}
+
+Quadratic speedup for brute force.  
+Security level of $n$-bit symmetric keys drops to $n/2$ bits.
+
+Mitigation:
+\begin{itemize}
+    \item AES-256,
+    \item doubling hash output lengths.
+\end{itemize}
+
+
+\subsection{Post-Quantum Cryptography (PQC)}
+
+NIST-selected schemes:
+\begin{itemize}
+    \item \textbf{CRYSTALS-Kyber} (encryption/key exchange),
+    \item \textbf{CRYSTALS-Dilithium} (signatures),
+    \item \textbf{Falcon} (compact signatures),
+    \item \textbf{SPHINCS+} (hash-based signatures).
+\end{itemize}
+
+Most rely on lattice problems:
+\begin{itemize}
+    \item Learning With Errors (LWE),
+    \item Module-LWE,
+    \item Shortest Vector Problem (SVP).
+\end{itemize}
+
+
+\subsection{Impact on Blockchains}
+
+Quantum threats:
+\begin{itemize}
+    \item ECDSA signatures become forgeable.
+    \item Public keys exposed on chain may be harvested today and broken later.
+    \item Grover's algorithm affects PoW difficulty.
+\end{itemize}
+
+Mitigations:
+\begin{itemize}
+    \item Move to PQ signatures.
+    \item Use hybrid classical--PQC schemes.
+    \item Increase PoW hash output size.
+\end{itemize}
+
+
+\subsection{Quick Summary}
+
+\begin{itemize}
+    \item Passive-secure MPC fails under malicious behavior.
+    \item Active adversaries require VSS and PVSS for correctness.
+    \item Fairness is impossible without additional assumptions.
+    \item Blockchains allow enforcing fairness via deposits and time-locks.
+    \item Ladder fairness extends fair exchange to arbitrary $n$.
+    \item Quantum computers break classical public-key crypto.
+    \item PQC offers quantum-safe alternatives for future blockchains.
 \end{itemize}
 
 
