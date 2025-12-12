@@ -2942,5 +2942,257 @@ Mitigations:
     \item PQC offers quantum-safe alternatives for future blockchains.
 \end{itemize}
 
+\section{Week 10}
+
+\subsection{Finance and Financial Assets}
+
+Finance concerns the creation, management, and investment of money and financial assets.
+
+Financial assets are non-physical assets whose value derives from contractual claims, such as:
+\begin{itemize}
+    \item Bank deposits
+    \item Stocks (equity securities)
+    \item Bonds (debt securities)
+    \item Loans
+\end{itemize}
+
+Financial services include lending, borrowing, issuing securities, and fund management.
+Financial markets are marketplaces where such assets are traded.
+
+\subsection{Decentralized Finance (DeFi)}
+
+Decentralized Finance (DeFi) refers to financial products and services built on decentralized blockchain infrastructure.
+
+Key characteristics:
+\begin{itemize}
+    \item No centralized intermediaries (banks, brokers, exchanges).
+    \item Users retain direct control over their assets (non-custodial).
+    \item Security depends on the underlying blockchain.
+\end{itemize}
+
+However, DeFi is exposed to new hazards due to the public and permissionless nature of blockchains.
+
+\subsection{Securities and Regulation}
+
+A security is a fungible, negotiable financial instrument with value, including:
+\begin{itemize}
+    \item Equity securities (stocks)
+    \item Debt securities (bonds)
+\end{itemize}
+
+Under the U.S. Howey Test, a security involves:
+\begin{itemize}
+    \item Investment of money in a common enterprise.
+    \item Expectation of profits derived from the efforts of others.
+\end{itemize}
+
+This distinction is critical when evaluating DeFi tokens, ICOs, and crowdfunding schemes.
+
+\subsection{Exchanges and Decentralized Exchanges (DEXs)}
+
+Exchanges facilitate trading between assets.
+Centralized exchanges maintain custody and order books off-chain.
+
+Decentralized Exchanges (DEXs):
+\begin{itemize}
+    \item Fully on-chain execution.
+    \item Trades between native currency (e.g.\ ETH) and tokens (e.g.\ ERC20).
+    \item Censorship-resistant but slower and more expensive due to blockchain fees.
+    \item Typically lack KYC/AML.
+\end{itemize}
+
+\subsection{Automated Market Makers (AMMs)}
+
+AMMs replace order books with liquidity pools.
+
+For a trading pair A-B:
+\begin{itemize}
+    \item Reserves: $x$ units of A and $y$ units of B.
+    \item Invariant: $x \cdot y = k$.
+\end{itemize}
+
+Swaps change the ratio of reserves, implicitly determining price.
+Large trades cause slippage.
+
+Liquidity providers are incentivized to keep pools large.
+
+\subsection{DEX Attacks and MEV}
+
+DEXs are vulnerable to transaction ordering attacks:
+\begin{itemize}
+    \item Front-running: attackers pay higher gas fees to execute before victims.
+    \item Sandwich (insertion) attacks: attacker trades before and after a victim to extract profit.
+\end{itemize}
+
+Miners and validators can exploit transaction ordering (MEV).
+Such attacks arise naturally from transparent mempools.
+
+\subsection{Loans and Decentralized Lending}
+
+Traditional loans involve risk assessment, interest, and potential default.
+
+Decentralized loans rely on:
+\begin{itemize}
+    \item Price oracles for asset valuation.
+    \item Over-collateralization.
+    \item Automatic liquidation when collateral value drops.
+\end{itemize}
+
+Lenders deposit capital into smart-contract vaults; borrowers lock collateral.
+
+\subsection{Flash Loans}
+
+Flash loans are loans issued and repaid within a single atomic transaction.
+
+Properties:
+\begin{itemize}
+    \item No default risk (transaction reverts if unpaid).
+    \item Borrower can use large capital briefly.
+\end{itemize}
+
+They enable:
+\begin{itemize}
+    \item Arbitrage between DEXs.
+    \item Oracle manipulation attacks.
+    \item Wash trading and market manipulation.
+\end{itemize}
+
+\subsection{Market Capitalization}
+
+Market capitalization is defined as:
+\[
+\text{Market Cap} = \text{circulating supply} \times \text{price}.
+\]
+
+Issues:
+\begin{itemize}
+    \item Price is determined by marginal trades on centralized exchanges.
+    \item Market cap can be artificially inflated without new real-world money.
+\end{itemize}
+
+Key question:
+\begin{itemize}
+    \item How much real-world value actually backs crypto market capitalization?
+\end{itemize}
+
+\subsection{Stablecoins}
+
+Stablecoins aim to maintain stable value (typically \$1).
+
+\subsubsection{Fiat-backed Stablecoins}
+
+Characteristics:
+\begin{itemize}
+    \item Centralized issuer.
+    \item 1:1 promise with fiat held in escrow.
+\end{itemize}
+
+Risks:
+\begin{itemize}
+    \item Fractional reserves.
+    \item Opaque auditing.
+    \item Regulatory intervention.
+\end{itemize}
+
+Example: Tether (USDT), which poses systemic risk due to scale and opacity.
+
+\subsubsection{Crypto-backed Stablecoins}
+
+Mechanism:
+\begin{itemize}
+    \item Over-collateralization using crypto assets.
+    \item Reliance on price oracles.
+\end{itemize}
+
+Problems:
+\begin{itemize}
+    \item Leverage amplifies price bubbles.
+    \item Liquidation cascades cause death spirals.
+\end{itemize}
+
+Example: MakerDAO required centralized intervention during market crashes.
+
+\subsubsection{Algorithmic Stablecoins}
+
+Design:
+\begin{itemize}
+    \item No collateral.
+    \item Supply adjusted algorithmically using bonds.
+\end{itemize}
+
+Failure reasons:
+\begin{itemize}
+    \item Depend on market confidence.
+    \item Collapse when demand evaporates.
+\end{itemize}
+
+No major algorithmic stablecoin has survived long-term.
+
+\subsection{Layer 2 Solutions}
+
+Layer 1 blockchains scale poorly due to:
+\begin{itemize}
+    \item Limited throughput.
+    \item High latency.
+\end{itemize}
+
+Layer 2 solutions:
+\begin{itemize}
+    \item Move most activity off-chain.
+    \item Rely on Layer 1 for dispute resolution and final settlement.
+\end{itemize}
+
+Trade-off:
+\begin{itemize}
+    \item Improved scalability at the cost of modified trust assumptions.
+\end{itemize}
+
+\subsection{Digital Economy on a Blockchain}
+
+Blockchains enable:
+\begin{itemize}
+    \item Recording monetary transactions transparently.
+    \item Algorithmic creation of money.
+\end{itemize}
+
+Issues:
+\begin{itemize}
+    \item Tokens are often treated as speculative assets rather than currency.
+    \item Valuation of on-chain economies is unclear.
+\end{itemize}
+
+\subsection{Blockchain Applications}
+
+Across applications, blockchains excel at managing digital state but struggle with real-world integration.
+
+Applications include:
+\begin{itemize}
+    \item Name registration.
+    \item Land ownership.
+    \item Local economies.
+    \item Supply chain tracking.
+    \item Philanthropy.
+    \item Crowdfunding.
+    \item Prediction markets.
+    \item IoT micropayments.
+    \item Gaming and NFTs.
+\end{itemize}
+
+Common limitation:
+\begin{itemize}
+    \item Oracles and off-chain trust reintroduce centralization.
+\end{itemize}
+
+\subsection{Key Takeaways}
+
+\begin{itemize}
+    \item DeFi removes intermediaries but introduces new attack surfaces.
+    \item Market metrics such as capitalization can be misleading.
+    \item Stablecoins pose systemic financial risks.
+    \item Layer 2 improves scalability but weakens guarantees.
+    \item Blockchain applications succeed best when assets are purely digital.
+\end{itemize}
+
+
 
 \end{document}
